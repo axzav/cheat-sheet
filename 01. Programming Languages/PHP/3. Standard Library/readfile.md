@@ -1,62 +1,79 @@
-В PHP можно отдать файл в браузер, используя заголовки HTTP, чтобы указать, что нужно скачать файл, и функцию `readfile` для его чтения. Вот пример кода, который демонстрирует, как это сделать:
+# readfile
+
+Функция `readfile()` читает файл и отправляет его содержимое в выходной буфер.
+
+## Базовое использование
 
 ```php
-<?php
-// Путь к файлу, который нужно отдать
-$file = 'path/to/your/file.zip';
+readfile('file.txt');
+```
 
-// Проверяем, существует ли файл
+## Отправка файла для скачивания
+
+```php
+$file = 'path/to/file.zip';
+
 if (file_exists($file)) {
-    // Устанавливаем заголовки для скачивания файла
+    // Установка заголовков
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="'.basename($file).'"');
+    header('Content-Disposition: attachment; filename="' . basename($file) . '"');
     header('Expires: 0');
     header('Cache-Control: must-revalidate');
     header('Pragma: public');
     header('Content-Length: ' . filesize($file));
     
-    // Читаем файл и отправляем его содержимое в выходной буфер
+    // Чтение и отправка файла
     readfile($file);
     exit;
 } else {
-    // Обрабатываем ошибку, если файл не найден
+    http_response_code(404);
     echo "File not found.";
 }
-?>
 ```
 
-### Пояснение кода:
+## Отправка файла для просмотра
 
-1. **Определение пути к файлу**:
+```php
+$file = 'path/to/image.jpg';
 
-   ```php
-   $file = 'path/to/your/file.zip';
-   ```
+if (file_exists($file)) {
+    header('Content-Type: ' . mime_content_type($file));
+    header('Content-Length: ' . filesize($file));
+    readfile($file);
+    exit;
+}
+```
 
-2. **Проверка существования файла**:
+## Заголовки HTTP
 
-   ```php
-   if (file_exists($file)) {
-   ```
+- `Content-Description` - описание содержимого
+- `Content-Type` - MIME тип файла
+- `Content-Disposition` - как обрабатывать файл (inline для просмотра, attachment для скачивания)
+- `Content-Length` - размер файла в байтах
+- `Expires` - время истечения кэша
+- `Cache-Control` - управление кэшем
+- `Pragma` - устаревший заголовок для кэша
 
-3. **Установка заголовков HTTP**:
+## Безопасность
 
-    * `Content-Description: File Transfer` — описывает передаваемое содержимое.
-    * `Content-Type: application/octet-stream` — тип содержимого (общий тип для бинарных данных).
-    * `Content-Disposition: attachment; filename="..."` — заголовок, указывающий, что содержимое должно быть загружено и сохранено с указанным именем файла.
-    * `Expires: 0` — заголовок указывает, что содержимое сразу устаревает.
-    * `Cache-Control: must-revalidate` и `Pragma: public` — заголовки для кэширования.
-    * `Content-Length: ...` — размер содержимого.
+Всегда проверяйте:
+- Существование файла
+- Права доступа
+- Путь файла (защита от directory traversal)
 
-4. **Отправка содержимого файла в браузер**:
+```php
+$file = 'path/to/file.txt';
+$realPath = realpath($file);
 
-   ```php
-   readfile($file);
-   exit;
-   ```
+// Проверка, что файл находится в разрешенной директории
+$allowedDir = '/var/www/uploads/';
+if (strpos($realPath, $allowedDir) !== 0) {
+    die('Access denied');
+}
 
-5. **Обработка ошибки**:
-   Если файл не найден, выводится сообщение об ошибке.
-
-Этот пример демонстрирует базовый способ отправки файла в браузер. В реальных приложениях может потребоваться дополнительная обработка ошибок и безопасность, чтобы избежать несанкционированного доступа к файлам.
+if (file_exists($realPath)) {
+    header('Content-Type: ' . mime_content_type($realPath));
+    readfile($realPath);
+}
+```

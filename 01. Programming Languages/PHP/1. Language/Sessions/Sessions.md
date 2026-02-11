@@ -1,35 +1,56 @@
-Переопределение хранения сессий позволяет изменять способ хранения сессий с использованием различных механизмов, таких как базы данных, Redis, Memcached и другие. Это может улучшить производительность, масштабируемость и безопасность ваших приложений. Давайте рассмотрим, как можно настроить PHP для хранения сессий в базе данных и в Redis.
+# Сессии
 
-Хранение сессий в базе данных
+Сессии позволяют хранить данные между HTTP-запросами на сервере.
 
-1️⃣Создание таблицы для хранения сессий:
-```sql
-CREATE TABLE sessions (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
-    data TEXT NOT NULL,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+## Базовое использование
+
+```php
+// Запуск сессии
+session_start();
+
+// Установка значения
+$_SESSION['username'] = 'user123';
+
+// Получение значения
+echo $_SESSION['username'];
+
+// Удаление значения
+unset($_SESSION['username']);
+
+// Уничтожение сессии
+session_destroy();
 ```
 
-2️⃣Создание класса для управления сессиями:
+## Проблемы с файловым хранилищем
+
+**Важно:** Сессии нельзя хранить в файлах при использовании в веб-приложениях, так как при одновременном обращении нескольких процессов к сессии может возникнуть deadlock.
+
+## Кастомные обработчики сессий
+
+### Хранение в базе данных
+
 ```php
-<?php
-class MySQLSessionHandler implements SessionHandlerInterface {
+class MySQLSessionHandler implements SessionHandlerInterface
+{
     private $pdo;
 
-    public function __construct(PDO $pdo) {
+    public function __construct(PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
-    public function open($savePath, $sessionName) {
+    public function open($savePath, $sessionName): bool
+    {
         return true;
     }
 
-    public function close() {
+    public function close(): bool
+    {
         return true;
     }
 
-    public function read($id) {
+    public function read($id): string
+    {
         $stmt = $this->pdo->prepare("SELECT data FROM sessions WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         $stmt->execute();
@@ -41,77 +62,82 @@ class MySQLSessionHandler implements SessionHandlerInterface {
         return '';
     }
 
-    public function write($id, $data) {
-        $stmt = $this->pdo->prepare("REPLACE INTO sessions (id, data, timestamp) VALUES (:id, :data, NOW())");
+    public function write($id, $data): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "REPLACE INTO sessions (id, data, timestamp) VALUES (:id, :data, NOW())"
+        );
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         $stmt->bindParam(':data', $data, PDO::PARAM_STR);
         return $stmt->execute();
     }
 
-    public function destroy($id) {
+    public function destroy($id): bool
+    {
         $stmt = $this->pdo->prepare("DELETE FROM sessions WHERE id = :id");
         $stmt->bindParam(':id', $id, PDO::PARAM_STR);
         return $stmt->execute();
     }
 
-    public function gc($maxlifetime) {
-        $stmt = $this->pdo->prepare("DELETE FROM sessions WHERE timestamp < NOW() - INTERVAL :maxlifetime SECOND");
+    public function gc($maxlifetime): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "DELETE FROM sessions WHERE timestamp < NOW() - INTERVAL :maxlifetime SECOND"
+        );
         $stmt->bindParam(':maxlifetime', $maxlifetime, PDO::PARAM_INT);
         return $stmt->execute();
     }
 }
 
+// Использование
 $pdo = new PDO('mysql:host=localhost;dbname=test', 'username', 'password');
 $handler = new MySQLSessionHandler($pdo);
 session_set_save_handler($handler, true);
 session_start();
-?>
 ```
 
-Хранение сессий в Redis
+### Хранение в Redis
 
-1️⃣Установка и настройка Redis:
-
-Убедитесь, что Redis установлен и запущен на вашем сервере.
-
-2️⃣Установка PHP расширения для Redis:
 ```php
-pecl install redis
-```
-
-3️⃣Настройка для использования Redis:
-```php
-<?php
 ini_set('session.save_handler', 'redis');
 ini_set('session.save_path', 'tcp://127.0.0.1:6379');
 
 session_start();
 $_SESSION['username'] = 'example_user';
-echo $_SESSION['username'];
-?>
 ```
 
-Хранение сессий в Memcached
+### Хранение в Memcached
 
-1️⃣Установка и настройка Memcached:
-
-Убедитесь, что Memcached установлен и запущен на вашем сервере.
-
-2️⃣Установка PHP расширения для Memcached:
-```shell
-pecl install memcached
-```
-
-3️⃣Настройка для использования Memcached:
 ```php
-<?php
 ini_set('session.save_handler', 'memcached');
 ini_set('session.save_path', '127.0.0.1:11211');
 
 session_start();
 $_SESSION['username'] = 'example_user';
-echo $_SESSION['username'];
-?>
 ```
 
-Настройка хранения сессий позволяет улучшить производительность и масштабируемость приложения, используя различные механизмы хранения, такие как базы данных, Redis или Memcached. Эти механизмы предоставляют дополнительные возможности, такие как более быстрая обработка данных и лучшая поддержка распределенных систем.
+## Настройки сессий
+
+```php
+// Время жизни сессии (в секундах)
+ini_set('session.gc_maxlifetime', 3600);
+
+// Вероятность запуска сборщика мусора (1/100)
+ini_set('session.gc_probability', 1);
+ini_set('session.gc_divisor', 100);
+
+// Имя cookie сессии
+ini_set('session.name', 'PHPSESSID');
+
+// Путь для cookie
+ini_set('session.cookie_path', '/');
+
+// Домен для cookie
+ini_set('session.cookie_domain', '');
+
+// Только HTTPS
+ini_set('session.cookie_secure', 1);
+
+// HttpOnly флаг
+ini_set('session.cookie_httponly', 1);
+```
