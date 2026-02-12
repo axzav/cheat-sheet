@@ -1,6 +1,6 @@
-# Полезные ссылки по PHP
+# Backlog
 
-## Статьи и ресурсы
+## Fun PHP
 
 - https://medium.com/@frontman/fun-php-1-19ad75ee78bb
 - https://medium.com/@frontman/fun-js-php-2-434b02ea4894
@@ -11,9 +11,9 @@
 ## Пример проверки константы класса
 
 ```php
-abstract class CommonTokenRegistry
+abstract class TestConstant
 {
-    public function __construct(private readonly RedisCacheInterface $cache)
+    public function __construct()
     {
         try {
             static::TOKEN_PATTERN;
