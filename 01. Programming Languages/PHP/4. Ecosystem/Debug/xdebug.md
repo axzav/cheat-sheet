@@ -1,131 +1,322 @@
 # Xdebug
 
+Xdebug — расширение PHP для отладки и профилирования кода. Предоставляет улучшенные stack traces, пошаговую отладку, профилирование производительности и трассировку выполнения.
+
+## Возможности
+
+- **Stack traces**: Улучшенные трассировки стека с типами и значениями параметров
+- **Breakpoints**: Точки останова для остановки выполнения
+- **Step Debugging**: Пошаговая отладка с контролем выполнения
+- **Profiler**: Профилирование производительности кода
+- **Tracing**: Трассировка всех вызовов функций
+- **Code Coverage**: Покрытие кода тестами (для PHPUnit)
+
+---
+
+## Установка
+
+### Проверка установки
+
+```sh
+php -v
+# Должна быть строка: with Xdebug v3.x.x
+```
+
+### Установка через PECL
+
+```sh
+pecl install xdebug
+```
+
+### Установка в Docker
+
+```dockerfile
+FROM php:7.4-apache
+RUN pecl install xdebug && docker-php-ext-enable xdebug
+COPY ./php.ini /usr/local/etc/php/
+```
+
+### Проверка конфигурации
+
 ```php
-xdebug_start_trace();
-
-$res = $this->clientRepository->getClientsByAccount($accountId);
-
-xdebug_stop_trace();
+php -r "xdebug_info();"
 ```
 
 ---
 
 ## Конфигурация
 
-COPY docker/90-xdebug.ini ${PHP_INI_DIR}/conf.d
-
-Выведет как и почему был триггернут xdebug
-```php
-xdebug_info();
-```
-
-
-XDEBUG_SESSION_START=1 php bin/console app:test-command
-
-
-curl POST http://api-one-login.abtasty.local/token
-
+### Основные параметры
 
 ```ini
-xdebug.client_host=host.docker.internal #remote ide host
+[xdebug]
+zend_extension=xdebug.so
+
+# Режимы работы (через запятую)
+xdebug.mode=develop,debug,profile,trace
+
+# Активация при запросе
+xdebug.start_with_request=trigger
+
+# Подключение к IDE
+xdebug.client_host=host.docker.internal
 xdebug.client_port=9003
+xdebug.idekey=PHPSTORM
+
+# Логирование
+xdebug.log=/var/log/xdebug.log
+
+# Директории для вывода
+xdebug.trace_output_dir=/var/www/traces
+xdebug.output_dir=/var/www/profiles
+
+# Дополнительные настройки
+xdebug.max_nesting_level=1000
 ```
 
+### Переопределение через переменные окружения
 
-Также параметры доступные в php.ini можно переопределять с помощью переменных окружения, что удобно при использовании в докере:
+Параметры можно переопределять через переменные окружения (удобно в Docker):
 
 ```yaml
 services:
   app:
     environment:
       XDEBUG_CONFIG: 'client_host=host.docker.internal client_port=9003'
-      PHP_IDE_CONFIG: serverName=api-core-docker
+      PHP_IDE_CONFIG: 'serverName=api-core-docker'
+      XDEBUG_MODE: 'debug,profile'
 ```
 
+**Важно:**
+- `XDEBUG_MODE` устанавливается до запуска PHP и не может быть изменен через GET/POST/COOKIE
+- `XDEBUG_CONFIG` переопределяет параметры из `php.ini`, но не `xdebug.mode`
+- `PHP_IDE_CONFIG` указывает имя сервера в IDE (должно совпадать с настройками IDE)
 
-`PHP_IDE_CONFIG="serverName=api-core-docker"`
-В этой строчке указывается имя сервера IDE в которой запущен дебаггер
+---
 
+## Режимы работы (Modes)
 
-XDEBUG_SESSION_START=1 - debug session
+Параметр `xdebug.mode` настраивается только в `php.ini` и не может быть переопределен через `XDEBUG_CONFIG`. Все указанные режимы работают одновременно.
 
+### Доступные режимы
 
-`XDEBUG_PROFILE` или `XDEBUG_TRACE`
+- **off** — Xdebug полностью отключен
+- **develop** (по умолчанию) — улучшенные `var_dump`, stack traces
+- **debug** — отладка через IDE (breakpoints, step debugging)
+- **profile** — профилирование производительности (cachegrind файлы)
+- **trace** — трассировка всех вызовов функций с параметрами
+- **coverage** — покрытие кода тестами (для PHPUnit)
+- **gcstats** — статистика сборщика мусора
 
+### Пример конфигурации
 
-https://www.youtube.com/watch?v=_3RkGZK-UC8 - DBGp Proxy
-https://www.youtube.com/watch?v=4EocpeKxI0k - flamegraph крутая фича с графиком вызовов и времени выполнения
+```ini
+xdebug.mode=develop,debug,profile,trace
+```
 
+**Рекомендация:** Включайте только необходимые режимы, так как они влияют на производительность.
+
+---
+
+## Активация через триггеры
+
+### Параметр `xdebug.start_with_request`
+
+- **yes** — активируется при каждом запросе
+- **trigger** — активируется только при наличии триггера (рекомендуется)
+- **default** — активируется при `XDEBUG_SESSION` или команде профилирования/трассировки
+- **no** — никогда не активируется автоматически
+
+### Триггеры для HTTP-запросов
+
+GET/POST параметры или COOKIE:
+
+- `XDEBUG_SESSION_START=PHPSTORM` — для отладки (debug mode)
+- `XDEBUG_TRIGGER=1` — универсальный триггер для всех режимов
+- `XDEBUG_PROFILE=1` — для профилирования
+- `XDEBUG_TRACE=1` — для трассировки
+
+**Примеры:**
+
+```
+http://localhost/myapp?XDEBUG_SESSION_START=PHPSTORM
+http://localhost/myapp?XDEBUG_TRIGGER=1
+http://localhost/myapp?XDEBUG_TRIGGER=1&XDEBUG_TRACE=1
+```
+
+В Postman можно добавить cookie: `XDEBUG_SESSION=PHPSTORM`
+
+### Триггеры для CLI
+
+```sh
+XDEBUG_TRIGGER=1 php bin/console app:test-command
+XDEBUG_SESSION_START=1 php bin/phpunit tests/
+```
+
+---
+
+## Отладка (Debug Mode)
+
+### Настройка для Docker
+
+```ini
+[xdebug]
+xdebug.mode=debug
+xdebug.client_host=host.docker.internal
+xdebug.client_port=9003
+xdebug.start_with_request=trigger
+xdebug.idekey=PHPSTORM
+```
+
+### Настройка PhpStorm
+
+1. **File > Settings > Languages & Frameworks > PHP > Servers**
+   - Добавить сервер с именем, совпадающим с `PHP_IDE_CONFIG` (например, `docker`)
+   - Host: `localhost`, Port: `80`
+   - Настроить path mappings (локальные пути → пути в контейнере)
+
+2. **File > Settings > Languages & Frameworks > PHP > Debug**
+   - Убедиться, что порт Xdebug: `9003`
+
+3. Включить "Listen to Xdebug connections" (кнопка с телефоном)
+
+### Использование
+
+1. Установить breakpoints в коде
+2. Включить "Listen to Xdebug connections" в IDE
+3. Отправить запрос с триггером `XDEBUG_SESSION_START=PHPSTORM`
+4. Выполнение остановится на breakpoint
+
+### Принудительный breakpoint из кода
 
 ```php
-php -r "xdebug_info();"
+xdebug_break(); // Остановка выполнения независимо от настроек
 ```
 
+---
 
-Что это??? Вроде как то же самое что и xhprof только быстрее
-https://docs.sentry.io/platforms/php/profiling/
-```bash
-apt-get install php-excimer
+## Профилирование (Profile Mode)
+
+Профилирование собирает статистику о времени выполнения и использовании памяти для каждой функции.
+
+### Настройка
+
+```ini
+[xdebug]
+xdebug.mode=profile
+xdebug.start_with_request=trigger
+xdebug.output_dir=/var/www/profiles
 ```
 
-**Trace viewers**
-https://github.com/kuun/xdebug-trace-viewer
-https://github.com/vtk13/xdebug-trace-viewer
+### Активация
 
-xdebug_break(); - принудительный брейкпоинт из кода. удобно тем, что можно задавать сложные условия в коде
+HTTP:
+```
+http://localhost/myapp?XDEBUG_PROFILE=1
+# или
+http://localhost/myapp?XDEBUG_TRIGGER=1
+```
 
-
-#### XDEBUG_MODE environment variable
-
-You can also set Xdebug's mode by setting the `XDEBUG_MODE` environment variable on the command-line; this will take precedence over the [xdebug.mode](https://xdebug.org/docs/all_settings#mode) setting, but will not change the value of the [xdebug.mode](https://xdebug.org/docs/all_settings#mode) setting.
-
-------------
-
-## Installation
-
-Проверка корректности установки
+CLI:
 ```sh
-root@2d9e788e3a4b:/var/www# php -v
-PHP 7.3.33 (cli) (built: Mar 17 2022 17:37:44) ( NTS )
-Copyright (c) 1997-2018 The PHP Group
-Zend Engine v3.3.33, Copyright (c) 1998-2018 Zend Technologies
-    with Zend OPcache v7.3.33, Copyright (c) 1999-2018, by Zend Technologies
-    with Xdebug v3.1.6, Copyright (c) 2002-2022, by Derick Rethans
-
+XDEBUG_TRIGGER=1 php bin/console your:command
 ```
 
+### Результаты
 
-## Xdebug modes
+Создаются файлы `cachegrind.out.*.gz` в директории `xdebug.output_dir`.
 
-Этот параметр может быть настроен только в `php.ini`, потому что xdebug должен быть сконфигурирован до запуска `php`. Также это единственный параметр, который не может быть переопределен переменной окружения `XDEBUG_CONFIG`.
+### Анализ профилей
 
-XDEBUG_MODE - не может быть изменен с реквестом (гет пост куки и тд). Должен быть установлен до запуска php в переменных окружения.
+- **QCacheGrind** (macOS, Windows) — https://github.com/QCacheGrind/QCacheGrind
+- **KCacheGrind** (Linux) — встроен в большинство дистрибутивов
+- **Webgrind** — веб-интерфейс для анализа
 
-Все моды работают одновременно. Т.е. если включен режим profile и debug, то при триггере будут одновременно работать и profile и debug независимо от триггера
+Файлы нужно распаковать из `.gz` перед анализом.
 
-```
-xdebug.mode=profile,develop,debug,coverage,trace
-```
-**off** - xdebug полностью отключен
-**develop** (default) - var_dump, error stack trace
-**debug** - IDE debugging
-**profile** - измерение производительности
-**trace** - будет записан каждый вызов каждой функции с ее параметрами
-**coverage** - используется с PHPUnit для определения покрытия кода тестами
-**gcstats** - подробности о работе сборщика мусора
+---
 
-## Trigger to start
+## Трассировка (Trace Mode)
 
-GET/POST or COOKIE
-`XDEBUG_TRIGGER=1`
+Трассировка записывает каждый вызов функции с аргументами, возвращаемыми значениями и временем выполнения.
 
-CLI
-```shell
-XDEBUG_TRIGGER=1 php bin/phpunit src/Component/Auth/tests/Domain/Client/Manager/ClientManagerTest.php
+### Настройка
+
+```ini
+[xdebug]
+xdebug.mode=trace
+xdebug.start_with_request=trigger
+xdebug.trace_output_dir=/var/www/traces
+xdebug.trace_format=0  # 0=human readable, 1=HTML, 2=computer format
 ```
 
+### Программная активация
 
---------
+```php
+// Начало трассировки
+xdebug_start_trace('/tmp/my_trace.xt');
+
+$res = $this->clientRepository->getClientsByAccount($accountId);
+
+// Конец трассировки
+xdebug_stop_trace();
+```
+
+### Активация через триггер
+
+HTTP:
+```
+http://localhost/myapp?XDEBUG_TRACE=1
+# или
+http://localhost/myapp?XDEBUG_TRIGGER=1
+```
+
+### Результаты
+
+Создаются файлы `trace.*.xt.gz` в директории `xdebug.trace_output_dir`.
+
+### Анализ трассировок
+
+- Текстовые редакторы (VS Code, Sublime Text и т.д.) — файлы `.xt` это текстовые файлы
+- **Trace viewers:**
+  - https://github.com/kuun/xdebug-trace-viewer
+  - https://github.com/vtk13/xdebug-trace-viewer
+
+Файлы нужно распаковать из `.gz` перед просмотром.
+
+### Полная трассировка запроса
+
+Для трассировки всего запроса от начала до конца:
+
+```ini
+xdebug.mode=trace
+xdebug.start_with_request=yes  # вместо trigger
+xdebug.trace_output_dir=/path/to/traces
+```
+
+**Внимание:** Трассировка генерирует большие файлы и замедляет выполнение.
+
+---
+
+## Различия: Профилирование vs Трассировка
+
+**Профилирование (Profiling):**
+- Собирает статистику: время выполнения, использование памяти
+- Помогает найти узкие места (bottlenecks)
+- Формат: cachegrind файлы
+- Анализ: QCacheGrind, KCacheGrind
+
+**Трассировка (Tracing):**
+- Записывает порядок выполнения: каждый вызов функции, аргументы, возвращаемые значения
+- Помогает понять логику выполнения и отладить сложные проблемы
+- Формат: текстовые файлы .xt
+- Анализ: текстовые редакторы, специализированные viewers
+
+---
+
+## Использование в Docker
+
+### docker-compose.yml
 
 ```yaml
 version: '3.8'
@@ -139,9 +330,12 @@ services:
     ports:
       - 80:80
     environment:
-      XDEBUG_CONFIG: remote_host=host.docker.internal
-      PHP_IDE_CONFIG: serverName=docker
+      XDEBUG_CONFIG: 'client_host=host.docker.internal client_port=9003'
+      PHP_IDE_CONFIG: 'serverName=docker'
+      XDEBUG_MODE: 'debug,profile'
 ```
+
+### Dockerfile
 
 ```dockerfile
 FROM php:7.4-apache
@@ -149,303 +343,79 @@ RUN pecl install xdebug && docker-php-ext-enable xdebug
 COPY ./php.ini /usr/local/etc/php/
 ```
 
-```
+### php.ini
+
+```ini
 [xdebug]
 xdebug.mode=debug
 xdebug.client_host=host.docker.internal
 xdebug.client_port=9003
-xdebug.start_with_request=yes
+xdebug.start_with_request=trigger
+xdebug.idekey=PHPSTORM
 ```
 
-PHP Storm:
-1. File > Settings (Preferences for macOS) > Languages & Frameworks > PHP > Servers
-2. Add a new server, name it `docker` (or the same name as you've put in PHP_IDE_CONFIG in your docker-compose file).
-3. Set host to `localhost`, port to `80`, and debugger to `Xdebug`. Also, use path mappings to map your directories in your local system to the directories in the docker container.
-4. Go to `File > Settings (Preferences for macOS) > Languages & Frameworks > PHP > Debug` and ensure that the debug port under Xdebug is `9003`.
+**Примечание:** `host.docker.internal` работает на Docker Desktop (Windows/Mac). На Linux используйте IP-адрес хоста.
 
+---
 
-Once the configuration is completed, you can start your Docker Compose environment and listen to Xdebug connections in PhpStorm. You should be able to set breakpoints and debug your PHP code.
+## Полезные функции
 
-Please note that this is a basic setup and you might need to adjust the settings based on your specific application requirements or system configuration. Also, you might need to replace `host.docker.internal` with your Docker host IP depending on your OS. As of my knowledge cutoff in September 2021, `host.docker.internal` is mostly supported on Docker for Windows and Docker for Mac.
-
----------------
-
-**Optimize Xdebug settings**: Depending on what you need Xdebug for, you might not need all its functionalities. Check your `xdebug.ini` or `php.ini` file and disable any unnecessary features. If you're not doing step debugging, for instance, you can set `xdebug.start_with_request` to `trigger` instead of `yes`.
-
------------------------------------
-Если вы используете `xdebug.start_with_request=trigger`, это означает, что Xdebug начнет отладку только в случае, если он получит специальный "триггер".
-
-Триггером может быть специальный GET/POST параметр или cookie. В случае с Postman, вы можете использовать GET или POST параметр с именем `XDEBUG_SESSION_START` и уникальным значением, например `XDEBUG_SESSION_START=PHPSTORM`.
-
-Например, если ваш URL был `http://localhost/myapp`, то с триггером Xdebug он будет выглядеть следующим образом: `http://localhost/myapp?XDEBUG_SESSION_START=PHPSTORM`.
-
-В Postman вы также можете установить куки для вашего запроса. Нажмите на кнопку "Cookies" под URL-строкой и добавьте новую строку cookie со значением `XDEBUG_SESSION=PHPSTORM`.
-
-Обратите внимание, что `PHPSTORM` используется как идентификатор для сессии отладки. Это значение должно соответствовать значению для `xdebug.idekey` в вашем `php.ini` файле. Если вы используете PHPStorm, как вашу IDE для отладки, то `PHPSTORM` является правильным значением по умолчанию.
-
----------------------------------
-
-Параметр `xdebug.mode` в Xdebug 3 используется для определения режимов работы, которые должны быть включены. Каждый режим активирует определенные возможности Xdebug. Режимы можно указать через запятую, если нужно включить несколько функций одновременно.
-
-Вот краткое описание каждого режима:
-
-1. **develop**: В этом режиме Xdebug включает функциональность, которая помогает разработчикам в повседневной работе, например, функции для отображения более подробных сообщений об ошибках.
-
-2. **debug**: Это режим для отладки с использованием шагового отладчика. Это позволяет установить точки останова и просмотреть состояние переменных и стек вызовов в различные моменты выполнения программы. Обычно этот режим используется вместе с интегрированной средой разработки (IDE), которая поддерживает протокол DBGp, такой как PhpStorm или Visual Studio Code.
-
-3. **profile**: В этом режиме Xdebug записывает профили производительности, которые можно использовать для анализа производительности кода и определения мест, требующих оптимизации. Для анализа профилей можно использовать инструменты, такие как Qcachegrind или Kcachegrind.
-
-4. **trace**: Этот режим включает трассировку выполнения кода. Xdebug будет записывать каждый вызов функции, аргументы, возвращаемые значения и другие информацию в файл трассировки. Это может быть полезно для отладки сложных проблем или понимания того, как работает код.
-
-
-Обратите внимание, что использование нескольких режимов одновременно может повлиять на производительность. Если вы не используете некоторые функции, лучше их отключить, указав только те режимы, которые вам действительно нужны.
-
-Также имейте в виду, что для каждого режима могут быть дополнительные параметры конфигурации. Вы можете найти полную информацию о каждом режиме и связанных с ним параметрах в документации Xdebug.
-
----------------------
-
-Да, вы правильно поняли. Если вы используете `xdebug.start_with_request=trigger`, это означает, что Xdebug начнет процесс отладки, трассировки или профилирования только в случае, если он получит специальный "триггер".
-
-Триггером может быть специальный GET/POST параметр или cookie с именем `XDEBUG_SESSION_START`, `XDEBUG_PROFILE` или `XDEBUG_TRACE` в зависимости от того, какую функциональность вы хотите запустить.
-
-В общем, это дает вам больше контроля над тем, когда и как запускать различные функции Xdebug, что может быть особенно полезно, если вы работаете над сложным приложением или в среде с ограниченными ресурсами, где постоянная отладка или профилирование может быть избыточной нагрузкой.
-
-------------------
-
-Режим `trace` в Xdebug предназначен для трассировки выполнения кода. При активации этого режима, Xdebug будет записывать каждый вызов функции/метода, аргументы, которые были переданы в них, возвращаемые значения, и другую полезную информацию, в специальный файл трассировки.
-
-Это может быть очень полезно для понимания порядка выполнения кода, отладки сложных проблем, где непонятно какие функции вызываются и в каком порядке, а также для определения областей, которые могут замедлять работу приложения.
-
-Существуют различные форматы трассировки, которые можно настроить с помощью параметра `xdebug.trace_format`. Например, вы можете использовать простой читаемый формат (`0`), формат HTML (`1`) или формат, совместимый с программой `computer` (`2`).
-
-Для активации трассировки в режиме `trace`, вам нужно установить `xdebug.mode` в значение `trace`. По умолчанию, трассировка будет выполняться при каждом запросе, но вы также можете настроить его так, чтобы трассировка запускалась только при определенных условиях, используя параметр `xdebug.start_with_request`.
-
-Вот пример использования трассировки:
+### Проверка состояния Xdebug
 
 ```php
-// Включение трассировки
-xdebug_start_trace('/tmp/my_trace.xt');
-
-// Код, который вы хотите трассировать
-...
-
-// Отключение трассировки
-xdebug_stop_trace();
+xdebug_info(); // Выводит информацию о конфигурации и триггерах
 ```
 
-Помимо этого, трассировка может быть включена и отключена динамически во время выполнения сценария с помощью функций `xdebug_start_trace()` и `xdebug_stop_trace()`.
+```sh
+php -r "xdebug_info();"
+```
 
-------------
+### Оптимизация настроек
 
-Чтобы получить полную трассировку запроса к Symfony-приложению от начала до конца, вам нужно настроить Xdebug так, чтобы он начинал трассировку при каждом запросе.
+Для production отключите Xdebug или используйте `xdebug.start_with_request=trigger` и включайте только необходимые режимы.
 
-Для этого:
+---
 
-1. Установите режим Xdebug в `trace`:
+## Решение проблем
 
-iniCopy code
+### Файлы трассировки не создаются
 
-`xdebug.mode=trace`
+1. Проверьте права доступа на директорию `xdebug.trace_output_dir`
+2. Убедитесь, что передаете правильные триггеры (`XDEBUG_TRACE=1` или `XDEBUG_TRIGGER=1`)
+3. Проверьте логи Xdebug: `xdebug.log`
+4. Убедитесь, что режим `trace` включен в `xdebug.mode`
 
-2. Установите `xdebug.start_with_request` на `yes`, чтобы трассировка начиналась при каждом запросе:
+### Сообщение "Trigger value for 'XDEBUG_TRIGGER' not found"
 
-iniCopy code
+Xdebug ищет триггер, но не находит его. Убедитесь, что передаете `XDEBUG_TRIGGER=1` или `XDEBUG_TRACE=1` в запросе.
 
-`xdebug.start_with_request=yes`
+### Файлы профилирования/трассировки
 
-3. Укажите путь к файлу, в который будет записываться трассировка:
+- `cachegrind.out.*.gz` — файлы профилирования (анализ: QCacheGrind/KCacheGrind)
+- `trace.*.xt.gz` — файлы трассировки (текстовые файлы, можно открыть в редакторе)
 
-iniCopy code
+Оба типа файлов сжаты gzip, нужно распаковать перед использованием.
 
-`xdebug.trace_output_dir=/path/to/your/traces`
+---
 
-Также убедитесь, что каталог, в который вы записываете трассировку, доступен для записи процессом PHP.
+## Альтернативы
 
-Теперь при каждом запросе к вашему Symfony-приложению Xdebug будет записывать полную трассировку выполнения кода от начала до конца.
+### Excimer (Sentry)
 
-Обратите внимание, что трассировка может генерировать большое количество данных, особенно для больших приложений или приложений с большим количеством запросов, так что убедитесь, что у вас достаточно места для хранения файлов трассировки.
+Быстрый профайлер от Sentry, альтернатива Xdebug для профилирования:
 
-Также стоит отметить, что включение трассировки может заметно замедлить выполнение вашего кода, так что это обычно делается только при отладке или анализе производительности, а не в продуктивной среде.
+```bash
+apt-get install php-excimer
+```
 
--------------------
+Документация: https://docs.sentry.io/platforms/php/profiling/
 
-Если вы используете `xdebug.start_with_request=trigger`, трассировка будет запускаться только когда Xdebug получит специфический "триггер".
+---
 
-Триггер для трассировки — это GET, POST или COOKIE параметр с именем `XDEBUG_TRACE`.
+## Полезные ссылки
 
-Вы можете запустить трассировку, добавив параметр `XDEBUG_TRACE` в строку запроса. Например:
-
-arduinoCopy code
-
-`http://yourdomain.com/yourscript?XDEBUG_TRACE`
-
-Или, если вы используете Postman или другой HTTP-клиент для отправки запросов, вы можете добавить `XDEBUG_TRACE` в качестве параметра в тело POST-запроса или в качестве параметра cookie.
-
-Помните, что значение этого параметра будет использоваться как имя файла для вывода трассировки. Если вы не укажете значение, Xdebug сгенерирует имя файла автоматически.
-
-Обратите внимание, что для работы этого метода на сервере должен быть установлен Xdebug и должны быть настроены соответствующие параметры конфигурации.
-
-
----------------------
-
-Trigger value for 'XDEBUG_TRIGGER' not found, falling back to 'XDEBUG_TRACE'
-
-Это сообщение от Xdebug говорит о том, что Xdebug ищет специфическое значение `XDEBUG_TRIGGER` для запуска трассировки, но не может его найти. В таком случае Xdebug по умолчанию пытается использовать `XDEBUG_TRACE`.
-
-Это сообщение обычно появляется, если вы пытаетесь запустить трассировку с использованием `xdebug.start_with_request=trigger`, но не передаете соответствующий триггер в параметрах запроса, в теле запроса или в cookie.
-
-Чтобы исправить это, вы должны передать `XDEBUG_TRIGGER` или `XDEBUG_TRACE` в своем запросе. Это может быть GET-параметр, POST-параметр или значение cookie. Например, если вы отправляете запрос через браузер, вы можете добавить `?XDEBUG_TRIGGER=1` или `?XDEBUG_TRACE=1` к URL.
-
-Если вы используете HTTP-клиент, такой как Postman, вы можете добавить `XDEBUG_TRIGGER` или `XDEBUG_TRACE` в качестве параметра запроса или параметра cookie.
-
-Вероятно, стоит также проверить, что ваши параметры конфигурации Xdebug установлены верно и что Xdebug активирован в вашей среде PHP.
-
-------------
-
-xdebug.client_host=host.docker.internal
-xdebug.client_port=9000
-xdebug.max_nesting_level = 1000
-xdebug.mode=develop,debug,profile,trace
-xdebug.start_with_request=trigger
-xdebug.log=/var/www/docker/php/xdebug/xdebug.log
-xdebug.trace_output_dir=/var/www/docker/php/xdebug/trace/
-xdebug.idekey = PHPSTORM
-
-http://localhost:81/login?XDEBUG_TRIGGER=1&XDEBUG_TRACE=1
-
-Я все равно не вижу оутпута трассировщика в директории /var/www/docker/php/xdebug/trace/
-
-=====
-
-Если вы не видите вывод трассировщика в указанной вами директории, возможно, возникла одна из следующих проблем:
-
-1. **Неправильно задана директория для вывода трассировщика.** Убедитесь, что вы правильно указали `xdebug.trace_output_dir` в настройках Xdebug. Проверьте путь к директории на опечатки или ошибки.
-
-2. **Проблемы с правами доступа.** PHP или веб-сервер может не иметь необходимых разрешений на запись в указанную директорию. Убедитесь, что у пользователя, от имени которого выполняется PHP (обычно это `www-data` для Apache или `php-fpm` для Nginx), есть разрешение на запись в эту директорию.
-
-3. **Xdebug не активирован или неправильно настроен.** Убедитесь, что Xdebug установлен и включен в вашей среде PHP. Вы можете проверить это, запустив `phpinfo()` и ища секцию Xdebug. Если Xdebug отсутствует или неправильно настроен, трассировка не будет работать.
-
-4. **Неправильно переданы параметры трассировщика.** Убедитесь, что вы правильно передаете `XDEBUG_TRIGGER=1` и `XDEBUG_TRACE=1` в своем запросе. Если эти параметры не распознаются, трассировка не будет активирована.
-
-
-Попробуйте проверить все вышеуказанные пункты. Если проблема все еще не решена, вам может понадобиться дополнительная отладка. Можете также проверить логи Xdebug (`/var/www/docker/php/xdebug/xdebug.log`) на наличие ошибок или полезной информации.
-
-===========
-
-я вижу файлы cachegrind.out.8.gz и trace.2181173001.xt.gz в директории с выводом xdebug. Что это и как это открыть?
-
-Файлы `cachegrind.out.8.gz` и `trace.2181173001.xt.gz`, которые вы видите в директории вывода, являются файлами профилирования и трассировки Xdebug соответственно. Вам потребуется соответствующий инструмент для их чтения.
-
-1. **cachegrind.out.8.gz**: Это файл профилирования, созданный Xdebug, когда он находится в режиме профилирования (`profile` в `xdebug.mode`). Файлы профилирования предоставляют детальную информацию о времени исполнения и использовании памяти каждой функции в вашем скрипте. Чтобы прочитать этот файл, вы можете использовать программу для анализа профилирования, такую как KCacheGrind (на Linux) или QCacheGrind (на MacOS и Windows).
-
-2. **trace.2181173001.xt.gz**: Это файл трассировки, созданный Xdebug в режиме трассировки (`trace` в `xdebug.mode`). Файлы трассировки показывают, какие функции были вызваны в ходе выполнения скрипта и сколько времени было затрачено на каждую из них. Чтобы прочитать этот файл, вы можете использовать текстовый редактор или инструмент анализа трассировки.
-
-
-Оба файла были сжаты с помощью gzip (обозначается расширением .gz), поэтому перед тем как открыть их, вам нужно их распаковать. Вы можете использовать любой программу для работы с архивами, которая поддерживает gzip, чтобы их распаковать.
-
-Обратите внимание, что для эффективного анализа данных профилирования и трассировки может потребоваться некоторый опыт и знание того, как работает ваш код.
-
-====================
-
-какой программой можно открыть файл трассировки?
-
-=====================
-
-Файлы трассировки Xdebug, которые имеют расширение .xt (или .xt.gz для сжатых файлов), представляют собой текстовые файлы. Вы можете открыть их в любом текстовом редакторе, таком как Notepad++, Sublime Text, Atom, VS Code и др.
-
-Если вы хотите более структурированного представления и анализа данных, вы можете использовать специализированный инструмент для чтения и анализа файлов трассировки Xdebug. Однако на момент моего последнего обновления (сентябрь 2021 г.) не существует широко используемого инструмента для этой цели, в отличие от файлов профилирования, которые можно анализировать с помощью таких инструментов, как KCacheGrind или QCacheGrind.
-
-Тем не менее, обработка этих файлов трассировки может быть упрощена с помощью некоторых скриптов и утилит, но они обычно требуют определенного уровня технической экспертизы для использования.
-
-Помните, что перед открытием сжатых файлов (.gz) их необходимо распаковать с помощью утилиты, поддерживающей формат gzip (например, 7-Zip, WinRAR или встроенные инструменты в Linux/Unix).
-
-===========
-
-чем отличается профайлинг от трассировки?
-
-===========
-
-Профилирование и трассировка - это два разных метода анализа выполнения кода. Они оба используются для выявления проблем с производительностью и поведением кода, но делают это разными способами и обеспечивают разные типы информации.
-
-**Профилирование (Profiling)**: Профилирование кода включает в себя сбор статистических данных о выполнении кода, таких как время выполнения функций, использование памяти и другие метрики производительности. Эта информация может быть использована для выявления "узких мест" в коде - частей кода, которые занимают большую часть времени выполнения или используют большую часть ресурсов.
-
-Профилировщики, такие как Xdebug в режиме профилирования, собирают эту информацию и обычно предоставляют ее в форме отчета, который может быть анализирован с помощью различных инструментов.
-
-**Трассировка (Tracing)**: Трассировка кода включает в себя отслеживание и запись порядка, в котором выполняются различные части кода. Это может включать в себя запись каждого вызова функции, каждого присвоения значения переменной, и т.д.
-
-Трассировщики, такие как Xdebug в режиме трассировки, предоставляют более детальную "пошаговую" информацию о том, что происходит в коде на каждом этапе его выполнения. Они обычно генерируют большие файлы трассировки, которые могут быть анализированы для выявления проблем с логикой, отладки исключений и ошибок и других задач.
-
-Важно отметить, что профилирование и трассировка могут замедлить выполнение кода, поэтому они обычно используются только во время разработки и тестирования, а не на производственном сервере.
-
------------
-
-Xdebug - это расширение PHP, которое предоставляет несколько возможностей для отладки и профилирования PHP-кода. Xdebug предлагает следующие функции:
-
-Stack traces: Xdebug улучшает стек трассировки PHP и предоставляет полезную информацию, такую как типы и значения параметров, что упрощает отладку.
-
-Breakpoints: Xdebug позволяет устанавливать точки останова в вашем коде, что позволяет вам остановить выполнение и проверить состояние вашего приложения в определенной точке.
-
-Step Debugging: Xdebug позволяет шаг за шагом отлаживать код, что позволяет вам контролировать, как ваш код выполняется и следить за состоянием переменных на каждом шаге.
-
-Profiler: Xdebug предоставляет профайлер, который позволяет вам увидеть, какие части вашего кода занимают больше всего времени, что помогает оптимизировать производительность.
-
-Для использования Xdebug вам сначала потребуется установить и настроить его. Если вы используете Docker, вы можете просто добавить его в свой Dockerfile:
-
-Dockerfile
-Copy code
-RUN pecl install xdebug && docker-php-ext-enable xdebug
-Затем вам нужно будет настроить Xdebug в вашем php.ini (или создать отдельный конфигурационный файл для Xdebug). Ниже приведен пример конфигурации, которую вы можете использовать как отправную точку:
-
-ini
-Copy code
-zend_extension=xdebug.so
-
-xdebug.mode=develop,debug,profile,trace
-xdebug.start_with_request=yes
-xdebug.client_host=host.docker.internal
-xdebug.client_port=9000
-xdebug.log=/var/log/xdebug.log
-Эта конфигурация включает все режимы Xdebug (develop, debug, profile, trace). Вы можете настроить xdebug.mode для выбора конкретных режимов, которые вам нужны. Обратите внимание, что xdebug.client_host должен указывать на хост, где работает ваш IDE. Если вы используете Docker на Windows или macOS, вы можете использовать host.docker.internal для обращения к хосту. Если вы используете Linux, вам нужно будет использовать IP-адрес хоста вместо этого.
-
-Как только Xdebug установлен и настроен, вы можете использовать его в своем IDE для отладки вашего кода. Как это сделать, будет зависеть от вашего конкретного IDE. В общих чертах, вы должны настроить ваш IDE для прослушивания входящих подключений Xdebug и установить точки останова в своем коде. Затем, когда вы выполните свой код, выполнение остановится на первой точке останова, и вы сможете отлаживать свой код, используя функции вашего IDE.
-
-------------
-
-Параметр xdebug.start_with_request управляет поведением Xdebug и определяет, когда Xdebug должен активироваться и начинать отладку или профилирование.
-
-xdebug.start_with_request=yes означает, что Xdebug будет активирован при каждом запросе, независимо от того, используется ли в запросе переменная GET/POST/COOKIE/Server XDEBUG_SESSION.
-
-Остальные возможные значения для этого параметра включают:
-
-default: отладка будет включена только при использовании переменной XDEBUG_SESSION GET/POST/COOKIE/Server, или когда выдана команда для запуска профилировщика или трассировщика. Это значение по умолчанию.
-
-trigger: отладка будет включена только при использовании переменной XDEBUG_SESSION GET/POST/COOKIE/Server.
-
-no: отладка никогда не будет включена автоматически.
-
-В зависимости от вашего рабочего процесса и настроек, вам может потребоваться настроить это значение таким образом, чтобы Xdebug активировался только при определенных условиях.
-
-----------------
-
-Если xdebug.start_with_request установлено в trigger, профилирование Xdebug будет запущено только в том случае, если будет обнаружен специальный "триггер". Для HTTP-запросов это обычно специальный GET или POST параметр или cookie. Для консольных команд вы можете использовать специальную переменную окружения XDEBUG_TRIGGER.
-
-Для запуска профилирования консольной команды с xdebug.start_with_request = trigger, вы можете выполнить команду следующим образом:
-
-bash
-Copy code
-XDEBUG_TRIGGER=1 php bin/console your:command
-Здесь XDEBUG_TRIGGER=1 устанавливает переменную окружения XDEBUG_TRIGGER в 1 для этой конкретной команды, что запускает профилирование Xdebug.
-
-202311161931
-Tags: #
-____________________________________________________
-#
-
-____________________________________________________
-# Base category
-- 
-____________________________________________________
-# Links
-- https://www.youtube.com/watch?v=VJMLygu3I3M - нужное видео, но так про qcachegrid тоже есть
-- https://www.youtube.com/@DerickRethansXdebug/videos - очень много разных видео практики по xdebug
-- https://xdebug.org/docs/all_settings - все настройки xdebug
+- **Официальная документация:** https://xdebug.org/docs/all_settings
+- **YouTube канал Derick Rethans (создатель Xdebug):** https://www.youtube.com/@DerickRethansXdebug/videos
+- **DBGp Proxy:** https://www.youtube.com/watch?v=_3RkGZK-UC8
+- **Flamegraph:** https://www.youtube.com/watch?v=4EocpeKxI0k
+- **QCacheGrind:** https://www.youtube.com/watch?v=VJMLygu3I3M
