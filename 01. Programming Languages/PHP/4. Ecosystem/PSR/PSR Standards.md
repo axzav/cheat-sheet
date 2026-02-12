@@ -114,14 +114,83 @@ $container->has('service');
 
 Расширенное руководство по стилю кодирования, расширяющее PSR-2.
 
+### Основные изменения от PSR-2
+
+- Строки могут быть длиннее 120 символов, но не должны быть длиннее
+- Открывающая фигурная скобка должна быть на той же строке
+- Ключевое слово `elseif` должно использоваться вместо `else if`
+- Все свойства должны иметь объявленную видимость
+
+## PSR-13: Hypermedia Links
+
+Стандартный способ представления гипермедиа ссылок.
+
+```php
+use Psr\Link\LinkInterface;
+
+$link = new Link('self', '/api/users/1');
+```
+
+## PSR-14: Event Dispatcher
+
+Стандартные интерфейсы для диспетчеризации событий.
+
+```php
+use Psr\EventDispatcher\EventDispatcherInterface;
+
+$dispatcher->dispatch(new UserCreatedEvent($user));
+```
+
 ## PSR-15: HTTP Server Request Handlers
 
 Стандартные интерфейсы для HTTP серверных обработчиков запросов.
+
+```php
+use Psr\Http\Server\RequestHandlerInterface;
+use Psr\Http\Server\MiddlewareInterface;
+```
+
+## PSR-16: Simple Cache
+
+Упрощенный интерфейс кэширования.
+
+```php
+use Psr\SimpleCache\CacheInterface;
+
+$cache->set('key', 'value', 3600);
+$value = $cache->get('key');
+$cache->delete('key');
+```
+
+## PSR-17: HTTP Factories
+
+Фабрики для создания HTTP сообщений.
+
+```php
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\ResponseFactoryInterface;
+
+$request = $requestFactory->createRequest('GET', '/api/users');
+$response = $responseFactory->createResponse(200);
+```
 
 ## PSR-18: HTTP Client
 
 Стандартный интерфейс для HTTP клиентов.
 
+```php
+use Psr\Http\Client\ClientInterface;
+
+$request = $requestFactory->createRequest('GET', 'https://api.example.com');
+$response = $client->sendRequest($request);
+```
+
 ## Использование
 
 Большинство современных PHP фреймворков и библиотек следуют PSR стандартам, что обеспечивает их совместимость и возможность совместного использования.
+
+## Ссылки
+
+- https://www.php-fig.org/psr/
+- https://github.com/php-fig
+- https://elisdn.ru/blog/134/four-pillars-of-psrs - 4 столпа PSR

@@ -1,100 +1,150 @@
-202012211407
-Tags: #
-____________________________________________________
-# PHP Standard Recommendation
-https://www.php-fig.org/psr/
-https://github.com/php-fig
-https://elisdn.ru/blog/134/four-pillars-of-psrs - 4 столпа PSR
+# Codeception
 
-Psr расшифровывается как PHP Standards recommendations. Эти рекомендации разрабатывает организация PHP-FIG (The php framework interop group), которая была основана в 2009 году. В организации состоят разработчики некоторых фреймворков и библиотек (composer, yii, zend, etc). Целью этих рекомендаций является унификация стиля кодирования и установление соглашений, который позволяют включать в свой проект, переиспользовать и переносить модули и классы, созданные другими разработчиками (в случае, если они придерживаются этих рекомендаций).
-На данный момент (весна 2019) существует 13 утвержденных документов:
+Codeception — полнофункциональный фреймворк для тестирования PHP приложений, поддерживающий unit, functional и acceptance тесты.
 
-PSR-1
-Basic Coding Standard
-Основные стандарты оформления кода. Основные из них:
-Файлы должны использовать только `<?php` и `<?=` теги
-Пространство имен должно следовать PSR-4
-Имена классов в StudlyCaps
-Имена методов в camelCase
-Константы классов в верхнем регистре, слова разделены _
+## Установка
 
-PSR-2
-Coding Style Guide
-Расширенные стандарты оформления кода. Основные:
-4 пробела вместо табов
-Открывающие/закрывающие скобки класса/метода должны располагаться на следующей строке
-Один пробел после объявления пространства имен, один пробел после блока импорта пространства имен
+```bash
+composer require --dev codeception/codeception
+php vendor/bin/codecept bootstrap
+```
 
-PSR-3
-Logger Interface
-Этот интерфейс позволяет использовать универсальный путь для логгирования в приложении и подключаемых модулях. Т.е. если в приложении используется объект логгера, реализующего интерфейс Psr\Log\LoggerInterface, то этот объект может быть передан в подключаемый модуль, который пишет логи с использованием того же интерфейса Psr\Log\LoggerInterface
+## Структура
 
-PSR-4
-Autoloading Standard
-Этот стандарт устанавливает правила именования пространства имен и расположения файла относительно пространства имен. Этот стандарт позволяет использовать единую логику автозагрузчика для классов приложения и подключаемых модулей. Основные положения:
+```
+tests/
+  unit/          # Unit тесты
+  functional/    # Functional тесты
+  acceptance/    # Acceptance тесты
+  _support/      # Вспомогательные классы
+codeception.yml  # Конфигурация
+```
 
-\<NamespaceName>(\<SubNamespaceNames>)*\<ClassName>
-ClassName - класс, интерфейс или трейт
-NamespaceName - vendor name
-SubNamespaceNames - эта часть пространства имен должна отражать путь до класса в файловой системе
+## Конфигурация
 
-PSR-6
-Caching Interface
+```yaml
+# codeception.yml
+paths:
+    tests: tests
+    output: tests/_output
+    support: tests/_support
+    data: tests/_data
+suites:
+    unit:
+        path: unit
+        actor: UnitTester
+    functional:
+        path: functional
+        actor: FunctionalTester
+    acceptance:
+        path: acceptance
+        actor: AcceptanceTester
+```
 
+## Основные команды
 
-PSR-7
-HTTP Message Interface
+```bash
+# Создать новый тест
+php vendor/bin/codecept generate:test unit MyTest
 
+# Запустить все тесты
+php vendor/bin/codecept run
 
-PSR-11
-Container Interface
+# Запустить конкретный suite
+php vendor/bin/codecept run unit
 
+# Запустить конкретный тест
+php vendor/bin/codecept run unit MyTest
 
-PSR-13
-Hypermedia Links
+# С покрытием кода
+php vendor/bin/codecept run --coverage --coverage-html coverage
+```
 
+## Unit тесты
 
-PSR-14
-Event Dispatcher
+```php
+<?php
+class UserTest extends \Codeception\Test\Unit
+{
+    protected $tester;
 
+    protected function _before()
+    {
+        // Подготовка перед каждым тестом
+    }
 
-PSR-15
-HTTP Handlers
+    public function testUserCreation()
+    {
+        $user = new User('John');
+        $this->assertEquals('John', $user->getName());
+    }
+}
+```
 
+## Functional тесты
 
-PSR-16
-Simple Cache
+```php
+<?php
+class LoginCest
+{
+    public function tryLogin(FunctionalTester $I)
+    {
+        $I->amOnPage('/login');
+        $I->fillField('username', 'admin');
+        $I->fillField('password', 'password');
+        $I->click('Login');
+        $I->see('Welcome');
+    }
+}
+```
 
+## Acceptance тесты
 
-PSR-17
-HTTP Factories
+```php
+<?php
+class HomepageCest
+{
+    public function tryToTest(AcceptanceTester $I)
+    {
+        $I->amOnPage('/');
+        $I->see('Welcome');
+        $I->seeLink('Login', '/login');
+    }
+}
+```
 
+## Модули
 
-PSR-18
-HTTP Client
+### WebDriver (Selenium)
 
+```yaml
+modules:
+    enabled:
+        - WebDriver:
+            url: http://localhost
+            browser: chrome
+```
 
+### REST
 
-Все PSR интерфейсы можно найти в репозитории https://github.com/php-fig и включить в свой проект.
+```php
+$I->sendGET('/api/users');
+$I->seeResponseCodeIs(200);
+$I->seeResponseIsJson();
+$I->seeResponseContainsJson(['name' => 'John']);
+```
 
-# PSR & PHP-FIG
-https://art-lemon.com/chto-takoe-php-fig
-https://www.php-fig.org/
+### Database
 
-## Codestyle standards
+```php
+$I->haveInDatabase('users', [
+    'name' => 'John',
+    'email' => 'john@example.com'
+]);
+$I->seeInDatabase('users', ['name' => 'John']);
+```
 
-https://www.php-fig.org/psr/psr-1/ PSR-1
-https://www.php-fig.org/psr/psr-12/ PSR-12
-Symfony - https://symfony.com/doc/current/contributing/code/standards.html
+## Ссылки
 
-
-
-
-
-
-____________________________________________________
-### Base category
-- [[00 Job interview]]
-____________________________________________________
-### Links
-- [[PHP]]
+- https://codeception.com/
+- https://github.com/Codeception/Codeception
