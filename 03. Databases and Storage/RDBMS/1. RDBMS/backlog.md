@@ -56,3 +56,7 @@ https://www.youtube.com/@roadofbugs/videos
 
 https://www.sql-practice.com/
 Задачи по sql + короткая дока по всему
+
+- lost update detection - база сама обнаруживает транзакции с потерянными апдейтами и делает роллбек в случае конкаренси. В каких базах реализовано?
+
+https://habr.com/ru/company/vk/blog/266811/ - большая статья об устройстве БД изнутри
