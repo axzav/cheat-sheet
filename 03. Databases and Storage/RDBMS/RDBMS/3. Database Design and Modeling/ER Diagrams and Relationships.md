@@ -1,92 +1,92 @@
-# ER Diagrams and Relationships
+# ER-диаграммы и связи
 
-Entity-Relationship (ER) diagrams are visual representations of database structure showing entities, attributes, and relationships.
+Entity-Relationship (ER) диаграммы — визуальное представление структуры базы данных, показывающее сущности (entities), атрибуты (attributes) и связи (relationships).
 
-## Entity Types
+## Типы элементов
 
-- **Entity**: Object or concept (e.g., User, Order, Product)
-- **Attribute**: Property of entity (e.g., name, email, price)
-- **Relationship**: Association between entities
+- **Entity (Сущность)**: Объект или концепция (например, User, Order, Product)
+- **Attribute (Атрибут)**: Свойство сущности (например, name, email, price)
+- **Relationship (Связь)**: Ассоциация между сущностями
 
-## Relationship Types
+## Типы связей
 
 ### One-to-One (1:1)
-One entity relates to exactly one other entity.
+Одна сущность связана ровно с одной другой сущностью.
 
-**Example**: User ↔ UserProfile
-- Each user has one profile
-- Each profile belongs to one user
+**Пример**: User ↔ UserProfile
+- Каждый пользователь имеет один профиль
+- Каждый профиль принадлежит одному пользователю
 
 ### One-to-Many (1:N)
-One entity relates to many other entities.
+Одна сущность связана со многими другими сущностями.
 
-**Example**: User → Orders
-- One user can have many orders
-- Each order belongs to one user
+**Пример**: User → Orders
+- Один пользователь может иметь много заказов
+- Каждый заказ принадлежит одному пользователю
 
 ### Many-to-Many (M:N)
-Many entities relate to many other entities.
+Многие сущности связаны со многими другими сущностями.
 
-**Example**: Students ↔ Courses
-- One student can take many courses
-- One course can have many students
-- Requires junction/join table
+**Пример**: Students ↔ Courses
+- Один студент может изучать много курсов
+- Один курс может иметь много студентов
+- Требуется промежуточная таблица (junction/join table)
 
-## ER Diagram Notation
+## Нотации ER-диаграмм
 
 ### Chen Notation
-- Rectangles: Entities
-- Diamonds: Relationships
-- Ovals: Attributes
-- Lines: Connections
+- Прямоугольники: Сущности
+- Ромбы: Связи
+- Овалы: Атрибуты
+- Линии: Соединения
 
 ### Crow's Foot Notation
-- Rectangles: Entities
-- Lines with symbols: Relationships
-  - | (one)
-  - O (zero or one)
-  - < (many)
+- Прямоугольники: Сущности
+- Линии с символами: Связи
+  - | (один)
+  - O (ноль или один)
+  - < (много)
 
-## Cardinality
+## Мощность связи (Cardinality)
 
-Describes the number of relationships:
-- **1**: Exactly one
-- **0..1**: Zero or one (optional)
-- **1..***: One or many
-- **0..***: Zero or many (many, optional)
-- **N**: Exactly N
-- **M..N**: Between M and N
+Описывает количество связей:
+- **1**: Ровно один
+- **0..1**: Ноль или один (опционально)
+- **1..***: Один или много
+- **0..***: Ноль или много (много, опционально)
+- **N**: Ровно N
+- **M..N**: От M до N
 
-## Relationship Attributes
+## Атрибуты связей
 
-Relationships can have attributes:
-- **Example**: Enrollment (Student ↔ Course)
-  - Attribute: grade, enrollment_date
+Связи могут иметь атрибуты:
+- **Пример**: Enrollment (Student ↔ Course)
+  - Атрибуты: grade, enrollment_date
 
-## Weak Entities
+## Слабые сущности (Weak Entities)
 
-Entities that depend on another entity:
-- Cannot exist without parent entity
-- Partial key (depends on parent's key)
+Сущности, которые зависят от другой сущности:
+- Не могут существовать без родительской сущности
+- Имеют частичный ключ (зависит от ключа родителя)
 
-**Example**: OrderItem depends on Order
+**Пример**: OrderItem зависит от Order
 
-## Converting ER to Relational Model
+## Преобразование ER-модели в реляционную
 
-### Entities → Tables
-Each entity becomes a table with attributes as columns.
+### Сущности → Таблицы
+Каждая сущность становится таблицей с атрибутами в виде столбцов.
 
-### Relationships → Foreign Keys
-- 1:1: Foreign key in either table
-- 1:N: Foreign key in "many" side
-- M:N: Junction table with foreign keys to both entities
+### Связи → Foreign Keys
+- 1:1: Foreign key в любой из таблиц
+- 1:N: Foreign key на стороне "много"
+- M:N: Промежуточная таблица с foreign keys к обеим сущностям
 
-### Example
+### Пример
 ```
 User (1) ──< (N) Order
 ```
 
-Becomes:
+Преобразуется в:
 ```sql
 CREATE TABLE users (
     id INT PRIMARY KEY,
@@ -100,41 +100,41 @@ CREATE TABLE orders (
 );
 ```
 
-## Design Principles
+## Принципы проектирования
 
-1. **Normalization**: Eliminate redundancy
-2. **Clear Relationships**: Define relationships explicitly
-3. **Appropriate Cardinality**: Model real-world accurately
-4. **Naming Conventions**: Use clear, consistent names
-5. **Documentation**: Document complex relationships
+1. **Normalization**: Устранение избыточности
+2. **Четкие связи**: Явное определение связей
+3. **Правильная мощность**: Точное моделирование реального мира
+4. **Соглашения об именовании**: Использование понятных, последовательных имен
+5. **Документация**: Документирование сложных связей
 
-## Tools
+## Инструменты
 
-- **Draw.io / diagrams.net**: Free diagramming
-- **Lucidchart**: Online diagramming
-- **dbdiagram.io**: Database-specific diagrams
-- **pgAdmin**: PostgreSQL ER diagram tool
-- **MySQL Workbench**: MySQL ER diagrams
-- **dbForge**: Database design tools
+- **Draw.io / diagrams.net**: Бесплатное создание диаграмм
+- **Lucidchart**: Онлайн-диаграммы
+- **dbdiagram.io**: Специализированные диаграммы баз данных
+- **pgAdmin**: Инструмент ER-диаграмм для PostgreSQL
+- **MySQL Workbench**: ER-диаграммы для MySQL
+- **dbForge**: Инструменты проектирования баз данных
 
-## Common Patterns
+## Типовые паттерны
 
-### Hierarchical (Self-Referencing)
+### Иерархический (самоссылающийся)
 ```
 Employee (1) ──< (N) Employee
-(manager-employee relationship)
+(связь менеджер-сотрудник)
 ```
 
-### Junction Table Pattern
+### Паттерн промежуточной таблицы
 ```
 Student (N) ──< (N) Course
          ↓
     Enrollment
-    (with attributes: grade, date)
+    (с атрибутами: grade, date)
 ```
 
-### Audit Pattern
+### Паттерн аудита
 ```
 Main Table ──< (1) Audit Table
-(tracks changes)
+(отслеживание изменений)
 ```

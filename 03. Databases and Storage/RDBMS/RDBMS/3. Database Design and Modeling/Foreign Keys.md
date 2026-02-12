@@ -1,8 +1,8 @@
 # Foreign Keys
 
-Foreign keys are constraints that enforce referential integrity between tables. They ensure that values in one table must exist in another table.
+Foreign key (внешний ключ) — ограничение, обеспечивающее ссылочную целостность (referential integrity) между таблицами. Гарантирует, что значения в одной таблице должны существовать в другой таблице.
 
-## Creating Foreign Keys
+## Создание Foreign Keys
 
 ```sql
 CREATE TABLE orders (
@@ -12,7 +12,7 @@ CREATE TABLE orders (
 );
 ```
 
-## Inline Definition
+## Инлайн определение
 
 ```sql
 CREATE TABLE orders (
@@ -21,7 +21,7 @@ CREATE TABLE orders (
 );
 ```
 
-## Named Foreign Key
+## Именованный Foreign Key
 
 ```sql
 CREATE TABLE orders (
@@ -33,7 +33,7 @@ CREATE TABLE orders (
 );
 ```
 
-## Adding Foreign Key to Existing Table
+## Добавление Foreign Key к существующей таблице
 
 ```sql
 ALTER TABLE orders
@@ -41,38 +41,38 @@ ADD CONSTRAINT fk_user
 FOREIGN KEY (user_id) REFERENCES users(id);
 ```
 
-## Foreign Key Actions
+## Действия Foreign Key
 
 ### ON DELETE
 
 ```sql
--- CASCADE: Delete related rows
+-- CASCADE: Удалить связанные строки
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 
--- SET NULL: Set foreign key to NULL
+-- SET NULL: Установить foreign key в NULL
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 
--- RESTRICT: Prevent deletion (default)
+-- RESTRICT: Запретить удаление (по умолчанию)
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 
--- NO ACTION: Similar to RESTRICT
+-- NO ACTION: Аналогично RESTRICT
 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE NO ACTION
 ```
 
 ### ON UPDATE
 
 ```sql
--- CASCADE: Update foreign key when primary key changes
+-- CASCADE: Обновить foreign key при изменении primary key
 FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
 
--- SET NULL: Set to NULL when primary key changes
+-- SET NULL: Установить в NULL при изменении primary key
 FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE SET NULL
 
--- RESTRICT: Prevent update (default)
+-- RESTRICT: Запретить обновление (по умолчанию)
 FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE RESTRICT
 ```
 
-## Composite Foreign Keys
+## Составные Foreign Keys
 
 ```sql
 CREATE TABLE order_items (
@@ -84,7 +84,7 @@ CREATE TABLE order_items (
 );
 ```
 
-## Self-Referencing Foreign Keys
+## Самоссылающиеся Foreign Keys
 
 ```sql
 CREATE TABLE employees (
@@ -95,23 +95,23 @@ CREATE TABLE employees (
 );
 ```
 
-## Dropping Foreign Keys
+## Удаление Foreign Keys
 
 ```sql
 ALTER TABLE orders
 DROP CONSTRAINT fk_user;
 ```
 
-## Benefits
+## Преимущества
 
-1. **Referential Integrity**: Ensures data consistency
-2. **Data Quality**: Prevents orphaned records
-3. **Cascading Actions**: Automatic cleanup of related data
-4. **Documentation**: Makes relationships explicit
+1. **Referential Integrity**: Обеспечивает целостность данных
+2. **Качество данных**: Предотвращает появление "осиротевших" записей
+3. **Каскадные действия**: Автоматическая очистка связанных данных
+4. **Документация**: Делает связи явными
 
-## Considerations
+## Соображения
 
-- Foreign keys add overhead to INSERT/UPDATE/DELETE operations
-- Can impact performance on large tables
-- Require indexes on foreign key columns (usually automatic)
-- Can complicate data migration and cleanup
+- Foreign keys добавляют накладные расходы на операции INSERT/UPDATE/DELETE
+- Могут влиять на производительность больших таблиц
+- Требуют индексов на столбцах foreign key (обычно создаются автоматически)
+- Могут усложнять миграцию и очистку данных
