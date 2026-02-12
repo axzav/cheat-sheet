@@ -1,4 +1,4 @@
-# Ошибки и исключения
+# Errors
 
 ## Типы ошибок
 
@@ -52,48 +52,3 @@ display_errors = stderr ; В stderr (PHP 8.0+)
 ```
 
 **Важно:** Даже при `display_errors=Off` и `error_reporting=0`, при фатальной ошибке nginx вернет 500, так как php-fpm не отдаст заголовки.
-
-## Исключения
-
-С PHP 7.0 многие фатальные ошибки заменены на исключения:
-
-```php
-try {
-    // Код, который может выбросить исключение
-} catch (TypeError $e) {
-    // Обработка ошибки типа
-} catch (Error $e) {
-    // Обработка других ошибок
-} catch (Exception $e) {
-    // Обработка исключений
-} finally {
-    // Код, выполняемый всегда
-}
-```
-
-## Иерархия исключений
-
-```
-Throwable
-├── Error
-│   ├── TypeError
-│   ├── ParseError
-│   ├── ArithmeticError
-│   └── ...
-└── Exception
-    ├── RuntimeException
-    ├── InvalidArgumentException
-    └── ...
-```
-
-## Пользовательские исключения
-
-```php
-class CustomException extends Exception
-{
-    public function __construct($message = "", $code = 0, Throwable $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-    }
-}
-```

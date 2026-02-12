@@ -51,7 +51,7 @@ class ChildClass extends BaseClass {
 }
 
 BaseClass::test();  // Вывод: Я BaseClass
-ChildClass::test(); // Вывод: Я ChildClass ✅
+ChildClass::test(); // Вывод: Я ChildClass
 ```
 
 Теперь `static::who()` корректно определяет, что должен быть вызван переопределённый метод `who()` в `ChildClass`.

@@ -1,4 +1,4 @@
-
+# Xdebug
 
 ```php
 xdebug_start_trace();
@@ -8,17 +8,11 @@ $res = $this->clientRepository->getClientsByAccount($accountId);
 xdebug_stop_trace();
 ```
 
-
-#under_construction
-
-------
+---
 
 ## Конфигурация
 
-todo:
-
-COPY docker/90-xdebug.ini ${PHP_INI_DIR}/conf.d - почему? что значит 90?
-
+COPY docker/90-xdebug.ini ${PHP_INI_DIR}/conf.d
 
 Выведет как и почему был триггернут xdebug
 ```php

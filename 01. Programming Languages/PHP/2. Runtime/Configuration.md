@@ -131,15 +131,6 @@ php_flag display_errors On
 php_value error_reporting E_ALL
 ```
 
-## Переопределение через .user.ini
-
-Для некоторых хостингов можно использовать `.user.ini`:
-
-```ini
-memory_limit = 256M
-upload_max_filesize = 10M
-```
-
 ## Лучшие практики
 
 1. **Не изменяйте php.ini напрямую** - используйте `ini_set()` в коде или конфигурацию веб-сервера
