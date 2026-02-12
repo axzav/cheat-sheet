@@ -1,0 +1,1 @@
+Locking mechanisms (e.g., shared locks, exclusive locks, advisory locks)
