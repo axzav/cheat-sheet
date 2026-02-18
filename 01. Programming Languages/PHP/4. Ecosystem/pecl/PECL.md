@@ -62,35 +62,10 @@ pecl list-channels
 
 ```bash
 pecl install xdebug
-```
-
-### Redis
-
-```bash
 pecl install redis
-```
-
-### MongoDB
-
-```bash
 pecl install mongodb
-```
-
-### APCu
-
-```bash
 pecl install apcu
-```
-
-### Imagick
-
-```bash
 pecl install imagick
-```
-
-### Memcached
-
-```bash
 pecl install memcached
 ```
 
@@ -122,39 +97,7 @@ pecl install --nodeps extension-name
 pecl download extension-name
 ```
 
-## Проблемы и решения
-
-### Проблемы с правами
-
-```bash
-# Установка в системную директорию
-sudo pecl install extension-name
-
-# Или установка в пользовательскую директорию
-pecl install -d /path/to/pear extension-name
-```
-
-### Проблемы с зависимостями
-
-```bash
-# Установка зависимостей вручную
-apt-get install lib-dev-package
-pecl install extension-name
-```
-
-### Проблемы с компиляцией
-
-```bash
-# Проверка логов
-pecl install extension-name 2>&1 | tee install.log
-
-# Установка с отладочной информацией
-pecl install -v extension-name
-```
-
-## Альтернативы PECL
-
-### Docker PHP extensions
+## Docker PHP extensions
 
 ```dockerfile
 FROM php:8.1-fpm
@@ -163,7 +106,7 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg
 RUN docker-php-ext-install gd
 ```
 
-### Pickle
+## Pickle
 
 Альтернативный установщик расширений PHP.
 

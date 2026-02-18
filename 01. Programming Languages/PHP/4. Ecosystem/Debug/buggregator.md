@@ -1,6 +1,12 @@
 # Buggregator
 
-Buggregator — инструмент для сбора и просмотра отладочной информации (dumps, logs, profiles) в одном месте.
+Buggregator — инструмент для сбора и просмотра отладочной информации в одном месте
+
+Buggregator собирает:
+- **Dumps** — из Symfony VarDumper
+- **Logs** — из Monolog и других логгеров
+- **Profiles** — из Xhprof, Xdebug и других профилировщиков
+- **Traces** — трассировки выполнения
 
 ## Установка
 
@@ -79,7 +85,32 @@ $logger->pushHandler($handler);
 
 ## Интеграция с Xhprof
 
-См. пример в `xhprof.md` для отправки профилей в Buggregator.
+```php
+<?php
+xhprof_enable(XHPROF_FLAGS_CPU | XHPROF_FLAGS_MEMORY);
+
+// Код для профилирования
+// ...
+
+$xhprof_data = xhprof_disable();
+
+// Отправка в Buggregator
+$requestData = [
+    'profile' => $xhprof_data,
+    'tags' => '',
+    'app_name' => 'Test app',
+    'hostname' => gethostname(),
+    'date' => (new DateTime())->getTimestamp(),
+];
+
+$ch = curl_init('http://profiler@buggregator:8000');
+$payload = json_encode($requestData);
+curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+$result = curl_exec($ch);
+curl_close($ch);
+```
 
 ## Интеграция с Xdebug
 
@@ -89,23 +120,6 @@ XDEBUG_CONFIG="profiler_output_dir=/tmp/xdebug"
 
 Профили Xdebug можно отправлять в Buggregator через API.
 
-## Просмотр данных
-
-Buggregator собирает:
-
-- **Dumps** — из Symfony VarDumper
-- **Logs** — из Monolog и других логгеров
-- **Profiles** — из Xhprof, Xdebug и других профилировщиков
-- **Traces** — трассировки выполнения
-
-## Фильтрация и поиск
-
-В веб-интерфейсе доступны:
-
-- Фильтрация по типу данных
-- Поиск по содержимому
-- Группировка по запросам
-- Временная шкала событий
 
 ## Ссылки
 
