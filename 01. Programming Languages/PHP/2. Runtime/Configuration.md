@@ -51,7 +51,7 @@ default_charset = "UTF-8"    ; Кодировка по умолчанию
 
 ```ini
 allow_url_fopen = On         ; Разрешить открытие URL как файлов
-allow_url_include = Off       ; Разрешить include из URL (опасно!)
+allow_url_include = Off      ; Разрешить include из URL (опасно!)
 expose_php = Off             ; Не показывать версию PHP в заголовках
 ```
 
@@ -94,7 +94,7 @@ $changeable = ini_get_all()['memory_limit']['access'] === 7;
 ### Расположение php.ini
 
 ```php
-php_ini_loaded_file();     // Путь к загруженному php.ini
+php_ini_loaded_file();      // Путь к загруженному php.ini
 php_ini_scanned_files();    // Дополнительные ini файлы
 ```
 
@@ -133,8 +133,6 @@ php_value error_reporting E_ALL
 
 ## Лучшие практики
 
-1. **Не изменяйте php.ini напрямую** - используйте `ini_set()` в коде или конфигурацию веб-сервера
-2. **Отключайте display_errors в production** - используйте логирование
-3. **Устанавливайте разумные лимиты** - memory_limit, max_execution_time
-4. **Используйте правильный часовой пояс** - date.timezone
-5. **Настройте сессии правильно** - безопасные cookie, правильное хранилище
+1. Отключить `display_errors` в production
+2. Установить `memory_limit`, `max_execution_time`
+3. Правильный часовой пояс `date.timezone`

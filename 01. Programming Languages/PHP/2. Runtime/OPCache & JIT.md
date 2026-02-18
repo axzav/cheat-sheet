@@ -106,20 +106,17 @@ opcache.enable_cli=1
 
 #### Кэш не обновляется
 ```ini
-; Убедитесь, что включена проверка
 opcache.validate_timestamps=1
 opcache.revalidate_freq=0
 ```
 
 #### Недостаточно памяти
 ```ini
-; Увеличьте размер
 opcache.memory_consumption=256
 ```
 
 #### Файлы не кэшируются
 ```php
-// Проверьте лимит
 $config = opcache_get_configuration();
 echo "Max files: " . $config['directives']['opcache.max_accelerated_files'] . "\n";
 ```
@@ -226,7 +223,6 @@ opcache.jit=1205  ; Средние оптимизации
 
 1. **OPCache** кэширует байт-код
 2. **JIT** компилирует часто используемый байт-код в машинный код
-3. Результат: максимальная производительность
 
 ### Рекомендации
 
