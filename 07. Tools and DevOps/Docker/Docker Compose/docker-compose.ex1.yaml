@@ -1,0 +1,89 @@
+version: '3'
+
+services:
+    core-api-app:
+        build:
+            context: .
+            dockerfile: core-api-app/Dockerfile
+        container_name: testproject_core-api-app
+        depends_on:
+            - core-db
+            - redis
+        networks:
+            - testproject_network
+        volumes:
+            - ./../api_backoffice:/var/www
+            - ./core-api-app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+
+    one-login-app:
+        build:
+            context: .
+            dockerfile: one-login-app/Dockerfile
+        container_name: testproject_one-login-app
+        env_file:
+            - .env.docker
+        depends_on:
+            - core-db
+            - redis
+        networks:
+            - testproject_network
+        volumes:
+            - ./../one-login:/var/www
+            - ./one-login-app/php.ini:/usr/local/etc/php/conf.d/custom.ini
+
+    webserver:
+        image: nginx:1.23
+        container_name: testproject_webserver
+        ports:
+            - "8081:80"
+        depends_on:
+            - core-api-app
+            - one-login-app
+        networks:
+            testproject_network:
+                aliases:
+                    - api.core.local
+                    - api.one-login.local
+        volumes:
+            - ./../:/var/www
+            - ./webserver/api.one-login.local.conf:/etc/nginx/conf.d/api.one-login.local.conf:ro
+            - ./webserver/api.core.local.conf:/etc/nginx/conf.d/api.core.local.conf:ro
+
+    core-db:
+        image: mariadb:10.4 #mysql:5.7 equivalent for arm64 native support
+        container_name: testproject_core-db
+        expose:
+            - 3306
+        ports:
+            - 3306:3306
+        env_file:
+            - .env.docker
+        networks:
+            - testproject_network
+        volumes:
+            - db_data:/var/lib/mysql:rw
+
+    redis:
+        image: redis:latest
+        container_name: testproject_redis
+        networks:
+            - testproject_network
+        ports:
+            - 6379:6379
+
+    redis-commander:
+        container_name: testproject_redis-commander
+        image: ghcr.io/joeferner/redis-commander:latest
+        environment:
+            - REDIS_HOSTS=local:redis:6379
+        networks:
+            - testproject_network
+        ports:
+            - "8082:8081"
+
+volumes:
+    db_data:
+
+networks:
+    testproject_network:
+        driver: bridge
