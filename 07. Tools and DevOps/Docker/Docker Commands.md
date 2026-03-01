@@ -3,8 +3,9 @@
 ## Images
 
 ```shell
-docker images                 # Список локальных образов 
-docker images -aq             # id всех образов (`-a` все включая intermediate, `-q` только id)
+docker images                 # Список локальных образов
+docker images -a              # Все образы (включая intermediate)
+docker images -aq             # ID всех образов (`-a` все включая intermediate, `-q` только id)
 
 docker build -t image-name .          # создать образ из Dockerfile текущей директории
 docker build -t my_image:0.01 .       # билд с тегом
@@ -18,11 +19,14 @@ docker push username/project-name     # отправить образ в registr
 docker rmi [image_id]                 # удалить образ по id или repository:tag
 docker rmi -f $(docker images -aq)    # удалить все образы (force)
 
-docker history image-name             # история слоев образа
-docker stats                          # статистика использования ресурсов контейнерами
+docker history image-name             # История слоев образа
+docker inspect image-name             # Подробная информация об образе
+docker stats                          # Статистика использования ресурсов контейнерами (в реальном времени)
 
-docker system prune -a                # очистить неиспользуемые контейнеры, сети, образы, кеш
-docker image prune -a                 # очистить неиспользуемые образы
+docker system prune                   # Очистить неиспользуемые контейнеры, сети, образы, кеш
+docker system prune -a                # Очистить все неиспользуемые контейнеры, сети, образы (включая используемые образами), кеш
+docker image prune                    # Очистить неиспользуемые образы
+docker image prune -a                 # Очистить все неиспользуемые образы (включая используемые контейнерами)
 ```
 
 ---
@@ -37,8 +41,9 @@ docker ps -aq        # id всех контейнеров
 docker inspect [container-name]   # подробная информация о контейнере
 docker logs container-id          # логи (`-f` follow, `--tail`)
 
-docker rm [container-name]        # удалить контейнер
-docker rm -fv $(docker ps -aq)    # удалить все контейнеры (force + volumes)
+docker rm [container-name]        # Удалить остановленный контейнер
+docker rm -f [container-name]     # Удалить контейнер (force, даже если запущен)
+docker rm -fv $(docker ps -aq)    # Удалить все контейнеры (force + volumes)
 
 docker cp core-db:/home/dump.sql .               # копировать файл из контейнера на хост
 docker cp ~/dump.sql c5605ccfb0a8:/home/dump.sql # копировать файл в контейнер
@@ -70,10 +75,11 @@ docker restart [container-name]
 docker pause [container-name]
 docker unpause [container-name]
 
-docker attach [container-name]    # подключиться к STDIN/STDOUT
-docker exec -it container bash    # запустить процесс внутри контейнера
-docker top container-name         # процессы контейнера
-docker diff container-name        # изменения файловой системы
+docker attach [container-name]    # Подключиться к STDIN/STDOUT (выход: Ctrl+P, Ctrl+Q)
+docker exec -it container bash    # Запустить интерактивный процесс внутри контейнера
+docker exec container command      # Выполнить команду в запущенном контейнере
+docker top container-name         # Процессы контейнера
+docker diff container-name        # Изменения файловой системы (A=added, D=deleted, C=changed)
 ```
 
 ```shell
@@ -92,7 +98,7 @@ nginx:1.23
 * `-p 8080:80`: проброс порта host → container
 * `-d`: detach (фон)
 * `-it`: interactive tty (консоль)
-* `-v host:container`: mount директории
+* `-v host:container[:options]`: mount директории (опции: `ro` - read-only, `rw` - read-write)
 * `-e KEY=value`: env переменные
 
 ```shell
@@ -125,24 +131,31 @@ docker volume prune      # удалить неиспользуемые volume
 ```
 
 ```shell
-docker run -v /host/datadir:/var/lib/mysql:ro mysql   # bind mount (read-only)
-docker run -v /var/lib/mysql mysql                    # anonymous volume
-docker run -v mysql_data:/var/lib/mysql mysql         # named volume
+docker run -v /host/datadir:/var/lib/mysql:ro mysql   # Bind mount (read-only)
+docker run -v /var/lib/mysql mysql                    # Anonymous volume
+docker run -v mysql_data:/var/lib/mysql mysql         # Named volume
 ```
 
-Anonymous volume создается автоматически и хранится в `/var/lib/docker/volumes/...`
+**Типы volumes:**
+- **Bind mount**: монтирование директории хоста в контейнер (`/host:/container`)
+- **Anonymous volume**: автоматически создается Docker, хранится в `/var/lib/docker/volumes/HASH/_data`
+- **Named volume**: именованный том, управляемый Docker, хранится в `/var/lib/docker/volumes/volume-name/_data`
 
 ---
 
 ## Networks
 
 ```shell
-docker network ls
-docker network create mynet
-docker network inspect mynet
-docker network rm mynet
+docker network ls                    # Список сетей
+docker network create mynet         # Создать сеть
+docker network create --driver bridge mynet  # Создать сеть с указанием драйвера
+docker network inspect mynet        # Подробная информация о сети
+docker network rm mynet             # Удалить сеть
+docker network prune                # Удалить неиспользуемые сети
 
-docker run --network mynet nginx
+docker run --network mynet nginx    # Запустить контейнер в сети
+docker network connect mynet container  # Подключить контейнер к сети
+docker network disconnect mynet container  # Отключить контейнер от сети
 ```
 
 ---
@@ -150,9 +163,12 @@ docker run --network mynet nginx
 ## Other
 
 ```shell
-docker container prune
-docker image prune
-docker volume prune
-docker network prune
-docker system df        # сколько места занимает docker
+docker container prune              # Удалить остановленные контейнеры
+docker image prune                  # Удалить неиспользуемые образы
+docker volume prune                 # Удалить неиспользуемые volumes
+docker network prune                # Удалить неиспользуемые сети
+docker system df                    # Сколько места занимает Docker
+docker system events                # События Docker в реальном времени
+docker version                      # Версия Docker
+docker info                         # Системная информация Docker
 ```

@@ -1,6 +1,6 @@
 # Docker
 
-**Docker** - средство упаковки (подготовка контейнера со средой, необходимой для приложения), доставки (Infrastructure-as-Code, IaC) и запуска (все приложения запускаются единым образом) приложения.
+**Docker** — средство упаковки (подготовка контейнера со средой, необходимой для приложения), доставки (Infrastructure-as-Code, IaC) и запуска (все приложения запускаются единым образом) приложения.
 
 Docker появился в 2013 году как развитие технологии LXC и, благодаря своей простоте, популяризировал контейнеризацию.  
 
@@ -40,40 +40,63 @@ Docker появился в 2013 году как развитие техноло�
 5. **Минимизация образов**. В образе должны быть только необходимые для работы приложения зависимости. Инструменты для дебага и SDK для билда проекта не должны быть включены в конечный образ;
 6. **Использование официальных образов**. По возможности следует использовать официальные образы, т.к. они максимально безопасны и оптимизированы.
 
-## Repositories
+## Registry и Repositories
+
+**Registry** — хранилище образов (Docker Hub, GitHub Container Registry, приватные registry).
+
+**Repository** — набор образов с разными тегами в registry. Например, `nginx` — это репозиторий, а `nginx:1.23`, `nginx:alpine` — это образы с разными тегами.
 
 ```sh
-docker push username/project-name  # Отправить докер образ в registry (docker hub или собственный)
-docker pull nginx:1.15.1           # Скачать образ из репозитория
+docker pull nginx:1.15.1           # Скачать образ из registry
+docker push username/project-name   # Отправить образ в registry (docker hub или собственный)
+docker login                        # Войти в registry
+docker logout                       # Выйти из registry
 ```
+
+**Docker Hub** — публичный registry по умолчанию: https://hub.docker.com
 
 ## Images
 
-Корневым образом в docker является `scratch` (пустой user space, доступны только syscalls), однако большинство образов основано на официальных образах из Docker Hub.
+**Image** — неизменяемый шаблон для создания контейнеров. Состоит из слоев (layers), каждый слой — это изменение файловой системы.
+
+Корневым образом в Docker является `scratch` (пустой user space, доступны только syscalls), однако большинство образов основано на официальных образах из Docker Hub.
 
 ```sh
-docker images  # Для отображения списка локальных образов (`-a` intermediate, `-q` только id)
+docker images                      # Список локальных образов
+docker images -a                   # Все образы (включая intermediate)
+docker images -aq                  # Только ID образов
 
-docker build -t my_image:0.01 . # Для билда образа на основе `Dockerfile`
-docker tag [image_id] my_image:0.01   # Также добавить тег к образу можно отдельной командой
+docker build -t my_image:0.01 .    # Собрать образ из Dockerfile
+docker tag [image_id] my_image:0.01  # Добавить тег к образу
+docker pull nginx:1.23            # Скачать образ из registry
+docker push username/image:tag   # Отправить образ в registry
 
-docker rmi [image_id] # Удаление образа по id или `repository:tag`
-docker rmi -f $(docker images -aq) # Удалить все образы
+docker rmi [image_id]             # Удалить образ по id или repository:tag
+docker rmi -f $(docker images -aq) # Удалить все образы (force)
 
-docker system prune -a # To clear all docker entities
+docker history image-name          # История слоев образа
+docker inspect image-name          # Подробная информация об образе
 ```
 
 ## Containers
 
+**Container** — запущенный экземпляр образа. Контейнер создается на основе образа и имеет свой собственный read-write слой поверх read-only слоев образа.
+
 Контейнеры создаются на основе образов с помощью команды `docker create` / `docker run`.
 
-При создании контейнера необходимо указать команду, которая будет основным процессом приложения в контейнере. Такая команда будет либо указана в `Dockerfile` либо должна быть указана явно при создании контейнера.
+**Важно:** Контейнер создается с неизменяемой конфигурацией (ports, volumes, env). После создания изменить их нельзя — нужно пересоздать контейнер.
 
-При создании контейнера можно указать дополнительные параметры, такие как порты, переменные окружения, сети, директории для монтирования и т.д. 
-При запуске контейнера после остановки эти параметры останутся примененными к контейнеру.
+При создании контейнера необходимо указать команду, которая будет основным процессом приложения. Команда может быть указана в `Dockerfile` (CMD/ENTRYPOINT) или явно при создании контейнера.
 
 ```sh
-docker run image-name [COMMAND]
+docker create image-name [COMMAND]  # Создать контейнер (не запускать)
+docker start container-name         # Запустить существующий контейнер
+docker run image-name [COMMAND]     # Создать и запустить контейнер
+docker stop container-name          # Остановить контейнер
+docker kill container-name          # Принудительно остановить (SIGKILL)
+docker rm container-name            # Удалить контейнер
+docker ps                           # Список запущенных контейнеров
+docker ps -a                        # Список всех контейнеров
 ```
 
 ## Volumes
@@ -85,78 +108,149 @@ docker volume create db_data
 docker volume rm db_data
 ```
 
-**Host volumes**
+**Типы volumes:**
 
-Монтирование директории на хосте в директорию в контейнере.
+1. **Bind mount** — монтирование директории хоста в контейнер:
 ```shell
 docker run -v /host/datadir:/var/lib/mysql:ro mysql
 ```
+Прямое монтирование директории хоста. Изменения видны и на хосте, и в контейнере.
 
-**Anonymus volumes**
-
-Также маунтится директория с хоста на контейнер, но ее создает докер автоматически (где-то в `var/lib/docker/volumes/HASH/_data`)
-```console
+2. **Anonymous volume** — автоматически создаваемый Docker том:
+```shell
 docker run -v /var/lib/mysql mysql
 ```
+Docker создает том автоматически, хранится в `/var/lib/docker/volumes/HASH/_data`. Удаляется при удалении контейнера с флагом `-v`.
 
-**Named volumes**
-
-Также маунтится директория с хоста на контейнер, но ее создает докер автоматически, так же как и для Anonymous volumes, но путь будет не сгенерирован для контейнера, а статичен (где-то в `var/lib/docker/volumes/mysql_data/_data`)
-```console
+3. **Named volume** — именованный том, управляемый Docker:
+```shell
 docker run -v mysql_data:/var/lib/mysql mysql
+```
+Docker создает и управляет томом, хранится в `/var/lib/docker/volumes/mysql_data/_data`. Сохраняется после удаления контейнера.
+
+**Управление volumes:**
+```shell
+docker volume ls                    # Список volumes
+docker volume create volume-name    # Создать volume
+docker volume inspect volume-name   # Информация о volume
+docker volume rm volume-name        # Удалить volume
+docker volume prune                # Удалить неиспользуемые volumes
 ```
 
 ## Network
 
+Docker создает изолированные сети для контейнеров. По умолчанию контейнеры могут общаться с интернетом, но не друг с другом.
+
 ```shell
-docker network ls # Вывести список сетей
-docker network create MyNetwork1
+docker network ls                    # Список сетей
+docker network create mynetwork      # Создать сеть
+docker network inspect mynetwork     # Информация о сети
+docker network rm mynetwork         # Удалить сеть
+docker network prune                # Удалить неиспользуемые сети
 
-docker run --net MyNetwork1
-
-docker network connect MyNetwork1 MyContainer # Подключить контейнер к существующей сети. Контейнер может быть подключен к нескольким сетям
-docker network disconnect MyNetwork1 MyContainer # Отключить контейнер от сети
-
-docker network create --driver host MyNetwork1 # так делать нельзя, может быть только одна сеть с типом host, которая создана по умолчанию докером. Также нельзя создать новую сеть с драйвером null (тип сети None)
+docker run --network mynetwork nginx # Запустить контейнер в сети
+docker network connect mynetwork container  # Подключить контейнер к сети
+docker network disconnect mynetwork container  # Отключить контейнер от сети
 ```
 
-- Bridge. В дефолтной сети контейнеры могут общаться по ip. В именованной сети контейнеры могут общаться по именам. Даже в разных сетях контейнеры могут общаться по ip
-- Host
-- None
-- macvlan - только один?
+**Типы сетей:**
 
-**Дебаг**:
-Обычно при дебаге сети подключаются к контейнеру и ставят внутри какой-то пакет (tcpdump) для дебага сетевых данных. На проде это небезопасно и можно испортить контейнер.
-Вместо этого можно создать отдельный контейнер и подключить его к сети контейнера, который нужно продебажить:
+1. **Bridge** (по умолчанию) — изолированная сеть:
+   - В дефолтной сети контейнеры общаются по IP
+   - В именованной сети контейнеры общаются по именам
+   - Контейнеры в разных сетях могут общаться по IP
+
+2. **Host** — использует сеть хоста (только Linux):
+   - Контейнер использует сетевой стек хоста напрямую
+   - Нельзя создать несколько сетей типа host
+
+3. **None** — отключенная сеть:
+   - Контейнер изолирован от сети
+   - Нельзя создать новую сеть с драйвером none
+
+4. **Macvlan** — назначает MAC-адрес контейнеру:
+   - Контейнер выглядит как физическое устройство в сети
+
+**Отладка сети:**
+
+Вместо установки инструментов в продакшен-контейнер, можно создать отдельный контейнер для отладки:
+
 ```sh
 docker run --rm -it --net container:nginx alpine
+# Теперь можно использовать tcpdump, netstat и т.д.
 ```
-
-Если нужно, чтобы контейнеры могли общаться друг с другом, нужно создать для них сеть и запустить контейнеры в этой сети. Без подключения к сети, контейнер имеет доступ в интернет, но не может обращаться к другим контейнерам
 
 ## Dockerfile
 
+Dockerfile — инструкции для сборки образа.
+
 ```shell
-docker build . # сбилдить докерфайл в образ в текущей директории. По умолчанию будет создан образ с именем `<none>` (repository, tag)
-docker tag [containerid] myimage:0.01  # Что переименовать существующий образ можно выполнить команду:
-docker build -t myimage:0.01 . # Сбилдить сразу с тегом
+docker build .                      # Собрать образ из Dockerfile (без тега, будет <none>)
+docker build -t myimage:0.01 .     # Собрать образ с тегом
+docker build -f Dockerfile.prod .  # Указать другой Dockerfile
+docker build --no-cache .          # Собрать без использования кеша
+docker build --target stage .      # Собрать до определенного stage (multi-stage)
 ```
 
-## Cache
+## Cache и слои
 
-Докер основан на OverlayFS - файловая система доступная в линукс.
-В некоторых случаях возникает ситуация, когда на разных слоях есть один и тот же файл, который перезаписывается в последующих. Такое часто возникает при apt-get install/update. Также если выполнить apt-get update в отдельном слое, то он закешируется докером и при установке новой версии пакета может возникнуть проблема. Решение тут - объединить слои apt-get install/update и очистку кеша apt-get.
+Docker основан на **OverlayFS** — файловая система, доступная в Linux. Каждая инструкция в Dockerfile создает новый слой.
+
+**Кеширование слоев:**
+- Docker кеширует слои для ускорения сборки
+- Если слой не изменился, используется кеш
+- Изменение одного слоя инвалидирует все последующие
+
+**Best practices для кеша:**
+- Объединять `apt-get update` и `apt-get install` в один RUN
+- Копировать файлы зависимостей (package.json, requirements.txt) перед копированием кода
+- Очищать кеш пакетного менеджера в том же слое
+
+**Пример:**
+```dockerfile
+# Плохо (кеш может быть устаревшим)
+RUN apt-get update
+RUN apt-get install -y nginx
+
+# Хорошо
+RUN apt-get update && \
+    apt-get install -y nginx && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+```
 
 
 ## Multistage build
 
-Для компилируемых языков/проектов не надо тащить building kit в продакшен образ. Сначала нужно сбилдить проект в отдельном этапе и затем скопировать сбилженный проект в продакшен образ. Это сильно экономит размер образа/контейнера.
+Для компилируемых языков/проектов не нужно включать инструменты сборки в продакшен-образ. Для этого используется multi-stage build:
 
-`COPY --from=frontend /frontend .` 
+1. Проект собирается в отдельном stage с инструментами сборки
+2. Копируется собранный проект в минимальный продакшен-образ
 
-При разработке и тестировании можно использовать build-target, чтобы использовать только тот этап билда, который нужен для разработки и тестирования:
+Это значительно уменьшает размер финального образа.
+
+**Пример:**
+```dockerfile
+# Stage 1: Build
+FROM node:18 AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Stage 2: Production
+FROM node:18-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY package*.json ./
+RUN npm install --production
+CMD ["node", "dist/index.js"]
+```
+
+**Использование конкретного stage:**
 ```sh
-docker build --target=frontend dotdemo:frontend
+docker build --target=builder -t myapp:builder .
 ```
 
 
