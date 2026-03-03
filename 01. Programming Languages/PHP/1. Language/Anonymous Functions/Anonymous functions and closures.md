@@ -102,7 +102,7 @@ $closure = static function() {
 };
 ```
 
-## Стрелочные функции (PHP 7.4+)
+## Стрелочные функции / arrow functions (PHP 7.4+)
 
 Короткая запись анонимных функций с автоматическим захватом переменных по значению:
 
@@ -114,6 +114,13 @@ $fn1 = fn($x) => $x + $y;
 $fn2 = function ($x) use ($y) {
     return $x + $y;
 };
+
+
+$scopes = array_map(function ($scope) {
+    return ['S' => $scope];
+}, $scopes);
+
+$scopes = array_map(fn($scope) => ['S' => $scope], $scopes);
 ```
 
 ## Callable типы

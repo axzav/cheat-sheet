@@ -7,8 +7,9 @@ docker images                 # Список локальных образов
 docker images -a              # Все образы (включая intermediate)
 docker images -aq             # ID всех образов (`-a` все включая intermediate, `-q` только id)
 
-docker build -t image-name .          # создать образ из Dockerfile текущей директории
-docker build -t my_image:0.01 .       # билд с тегом
+docker build -t image-name .                        # создать образ из Dockerfile текущей директории
+docker build -t my_image:0.01 .                     # билд с тегом
+docker build -t image-name -f MyDockerfile .        # билд из докерфайла с кастомным именем, "." обозначает директорию контекста билда
 
 docker tag [image_id] my_image:0.01   # добавить тег существующему образу
 
@@ -100,6 +101,7 @@ nginx:1.23
 * `-it`: interactive tty (консоль)
 * `-v host:container[:options]`: mount директории (опции: `ro` - read-only, `rw` - read-write)
 * `-e KEY=value`: env переменные
+* `-u 1000:1000`: `<uid>[:<gid>]` запустить основной процесс контейнера с этим UID и GID
 
 ```shell
 docker run -it ubuntu bash   # интерактивная консоль

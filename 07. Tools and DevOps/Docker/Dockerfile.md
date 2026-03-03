@@ -239,9 +239,32 @@ docker build --build-arg BUILD_DATE=$(date) .
 
 **USER** — указывает пользователя для последующих инструкций.
 
+**USER** устанавливает пользователя для всех последующих инструкций в Dockerfile:
+* Во время сборки образа — влияет на `RUN` после `USER`
+* При запуске контейнера — влияет на `CMD` и `ENTRYPOINT`
+
+Процесс php-fpm запускается от пользователя `appuser`, а не от `root`:
 ```dockerfile
-USER node
-USER 1000:1000  # UID:GID
+FROM php:8.2-fpm
+
+# Все команды до USER выполняются от root
+RUN apt-get update && apt-get install -y git
+RUN groupadd -g 1000 appuser
+RUN useradd -u 1000 -g 1000 appuser
+
+# После USER все команды выполняются от appuser
+USER appuser
+
+# выполнится от appuser
+RUN composer install
+
+# CMD тоже выполнится от appuser
+CMD ["php-fpm"]
+```
+
+USER можно переопределить при запуске:
+```shell
+docker run --user root my-php-image  # Запустит от root, игнорируя USER из Dockerfile
 ```
 
 **Важно:**
