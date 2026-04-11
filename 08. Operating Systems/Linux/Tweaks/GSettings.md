@@ -14,7 +14,7 @@ gnome-tweaks
 
 ```shell
 gsettings set org.gnome.desktop.interface text-scaling-factor 1.14  # Увеличить DPI, лучше чем scaling factor
-gsettings set org.gnome.desktop.interface font-name 'Inter 11' # выставить системный UI шрифт 
+gsettings set org.gnome.desktop.interface font-name 'Noto Sans 11' # выставить системный UI шрифт 
 ```
 
 Настройки шрифтов:

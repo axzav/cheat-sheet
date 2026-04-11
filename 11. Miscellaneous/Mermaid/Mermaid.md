@@ -1,5 +1,7 @@
 # Mermaid
 
+https://github.com/mermaid-js/mermaid-cli
+
 ```mermaid
 journey
     title My working day

@@ -67,6 +67,39 @@ fc-match -v "sans-serif" | grep -E "family|style|hinting|antialiasing"  # осн
 ```
 
 
+
+```xml
+<?xml version='1.0'?>
+<!DOCTYPE fontconfig SYSTEM 'fonts.dtd'>
+<fontconfig>
+    <alias>
+        <family>sans-serif</family>
+        <prefer>
+            <family>Noto Sans</family>
+        </prefer>
+    </alias>
+
+    <match target="pattern">
+        <test name="family"><string>Arial</string></test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Noto Sans</string>
+        </edit>
+    </match>
+
+    <match target="pattern">
+        <test name="family"><string>Helvetica</string></test>
+        <edit name="family" mode="assign" binding="strong">
+            <string>Noto Sans</string>
+        </edit>
+    </match>
+</fontconfig>
+
+
+
+```
+
+
+
 ### Фикс фоллбека для emoji
 
 ~/.config/fontconfig/conf.d/50-emoji.conf
